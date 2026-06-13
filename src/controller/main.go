@@ -43,7 +43,7 @@ func main() {
 
 	reconciler := &controllers.ReportRequestReconciler{
 		Client:         mgr.GetClient(),
-		WorkerImage:    controllers.EnvOrDefault("WORKER_IMAGE", "ghcr.io/your-org/k8s-controller-workshop/worker:latest"),
+		WorkerImage:    controllers.EnvOrDefault("WORKER_IMAGE", "ghcr.io/appsfactory/k8s-controller-workshop/worker:latest"),
 		MockAIURL:      controllers.EnvOrDefault("MOCK_AI_URL", "http://mock-ai.report-queue.svc.cluster.local:8080"),
 		MinioEndpoint:  controllers.EnvOrDefault("MINIO_ENDPOINT", "minio.report-queue.svc.cluster.local:9000"),
 		MinioBucket:    controllers.EnvOrDefault("MINIO_BUCKET", "reports"),

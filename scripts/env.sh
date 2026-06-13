@@ -9,7 +9,7 @@ export NAMESPACE="${NAMESPACE:-report-queue}"
 
 # Registry/prefix for prebuilt images. Override to use your own published images.
 # Images are referenced as ${IMAGE_PREFIX}/<name>:${IMAGE_TAG}
-export IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/your-org/k8s-controller-workshop}"
+export IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/appsfactory/k8s-controller-workshop}"
 export IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 # Local image names (used when building + loading into kind).

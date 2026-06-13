@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: mock-ai
-          image: ghcr.io/your-org/k8s-controller-workshop/mock-ai:latest
+          image: ghcr.io/appsfactory/k8s-controller-workshop/mock-ai:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

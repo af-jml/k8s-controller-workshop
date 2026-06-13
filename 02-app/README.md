@@ -11,7 +11,7 @@ Time: ~25 minutes.
 
 ## 0. Make the images available
 
-The manifests reference images like `ghcr.io/your-org/k8s-controller-workshop/web-app:latest`
+The manifests reference images like `ghcr.io/appsfactory/k8s-controller-workshop/web-app:latest`
 with `imagePullPolicy: IfNotPresent`. Choose one path:
 
 - **Build & load locally (offline-friendly):**

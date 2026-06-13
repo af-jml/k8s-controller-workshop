@@ -54,7 +54,7 @@ spec:
       serviceAccountName: web-app
       containers:
         - name: web-app
-          image: ghcr.io/your-org/k8s-controller-workshop/web-app:latest
+          image: ghcr.io/appsfactory/k8s-controller-workshop/web-app:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
