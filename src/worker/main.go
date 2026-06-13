@@ -15,8 +15,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,16 +42,17 @@ func main() {
 		log.Fatalf("failed to generate report: %v", err)
 	}
 
-	pdf, err := renderPDF(cfg.Title, report)
+	data := parseReport(report)
+	pdfBytes, err := renderPDF(cfg.Title, data)
 	if err != nil {
 		log.Fatalf("failed to render PDF: %v", err)
 	}
 
-	if err := uploadPDF(cfg, pdf); err != nil {
+	if err := uploadPDF(cfg, pdfBytes); err != nil {
 		log.Fatalf("failed to upload PDF: %v", err)
 	}
 
-	log.Printf("done: uploaded %d bytes to %s/%s", len(pdf), cfg.Bucket, cfg.ObjectKey)
+	log.Printf("done: uploaded %d bytes to %s/%s", len(pdfBytes), cfg.Bucket, cfg.ObjectKey)
 }
 
 type config struct {
@@ -117,44 +120,110 @@ func generateReport(cfg config) (string, error) {
 	return parsed.Report, nil
 }
 
-// renderPDF turns the (markdown-ish) report text into a simple, readable PDF.
-// It is intentionally lightweight: headings become larger text, list items get a bullet,
-// everything else is body text.
-func renderPDF(title, report string) ([]byte, error) {
-	pdf := fpdf.New("P", "mm", "A4", "")
-	pdf.SetMargins(20, 20, 20)
-	pdf.AddPage()
+// ── Structured report types ────────────────────────────────────────────────────
 
-	pdf.SetFont("Helvetica", "B", 18)
-	pdf.MultiCell(0, 9, sanitize(title), "", "L", false)
-	pdf.Ln(2)
+// reportData holds content extracted from the AI report text.
+// @METRIC, @CHART, @TABLE directive lines are parsed out; the rest becomes Body prose.
+type reportData struct {
+	Metrics []metricCard
+	Chart   []barItem
+	Table   []tableRow
+	Body    []string
+}
 
-	for _, raw := range strings.Split(report, "\n") {
-		line := strings.TrimRight(raw, " ")
+type metricCard struct {
+	Label     string
+	Formatted string
+	Positive  bool
+}
+
+type barItem struct {
+	Label string
+	Value float64
+}
+
+type tableRow struct {
+	Label     string
+	Formatted string
+}
+
+// parseReport splits the report text into structured visual data and prose body lines.
+func parseReport(text string) reportData {
+	var d reportData
+	for _, raw := range strings.Split(text, "\n") {
+		line := strings.TrimRight(raw, "\r ")
 		switch {
-		case strings.HasPrefix(line, "# "):
-			pdf.SetFont("Helvetica", "B", 16)
-			pdf.Ln(3)
-			pdf.MultiCell(0, 8, sanitize(strings.TrimPrefix(line, "# ")), "", "L", false)
-		case strings.HasPrefix(line, "## "):
-			pdf.SetFont("Helvetica", "B", 13)
-			pdf.Ln(2)
-			pdf.MultiCell(0, 7, sanitize(strings.TrimPrefix(line, "## ")), "", "L", false)
-		case strings.HasPrefix(line, "- "):
-			pdf.SetFont("Helvetica", "", 11)
-			pdf.MultiCell(0, 6, "  •  "+sanitize(strings.TrimPrefix(line, "- ")), "", "L", false)
-		case strings.TrimSpace(line) == "---":
-			pdf.Ln(2)
-			y := pdf.GetY()
-			pdf.Line(20, y, 190, y)
-			pdf.Ln(2)
-		case strings.TrimSpace(line) == "":
-			pdf.Ln(3)
+		case strings.HasPrefix(line, "@METRIC:"):
+			// @METRIC:Label|rawval|formatted|positive
+			parts := strings.SplitN(strings.TrimPrefix(line, "@METRIC:"), "|", 4)
+			if len(parts) >= 3 {
+				d.Metrics = append(d.Metrics, metricCard{
+					Label:     parts[0],
+					Formatted: parts[2],
+					Positive:  len(parts) >= 4 && parts[3] == "positive",
+				})
+			}
+		case strings.HasPrefix(line, "@CHART:"):
+			// @CHART:Label|value
+			parts := strings.SplitN(strings.TrimPrefix(line, "@CHART:"), "|", 2)
+			if len(parts) == 2 {
+				v, err := strconv.ParseFloat(parts[1], 64)
+				if err == nil {
+					d.Chart = append(d.Chart, barItem{Label: parts[0], Value: v})
+				}
+			}
+		case strings.HasPrefix(line, "@TABLE:"):
+			// @TABLE:Label|formatted
+			parts := strings.SplitN(strings.TrimPrefix(line, "@TABLE:"), "|", 2)
+			if len(parts) == 2 {
+				d.Table = append(d.Table, tableRow{Label: parts[0], Formatted: parts[1]})
+			}
 		default:
-			pdf.SetFont("Helvetica", "", 11)
-			pdf.MultiCell(0, 6, sanitize(line), "", "L", false)
+			d.Body = append(d.Body, line)
 		}
 	}
+	return d
+}
+
+// ── PDF rendering ────────────────────────────────────────────────────────────────────
+
+// renderPDF produces a traditional finance-style PDF:
+// navy header band → key-metric cards → horizontal bar chart → dataset table → prose.
+func renderPDF(title string, d reportData) ([]byte, error) {
+	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.SetMargins(20, 20, 20)
+	pdf.SetAutoPageBreak(true, 22)
+	pdf.SetFooterFunc(func() {
+		pdf.SetY(-15)
+		pdf.SetFont("Helvetica", "", 7.5)
+		pdf.SetTextColor(140, 140, 150)
+		pdf.SetDrawColor(195, 205, 218)
+		pdf.SetLineWidth(0.3)
+		pdf.Line(20, pdf.GetY()-2, 190, pdf.GetY()-2)
+		pdf.SetLineWidth(0.2)
+		pdf.CellFormat(85, 8, "AI Report Queue", "", 0, "L", false, 0, "")
+		pdf.CellFormat(85, 8, fmt.Sprintf("Page %d", pdf.PageNo()), "", 0, "R", false, 0, "")
+	})
+
+	pdf.AddPage()
+	drawHeader(pdf, title)
+	pdf.SetXY(20, 40)
+
+	if len(d.Metrics) > 0 {
+		drawMetricCards(pdf, d.Metrics)
+		pdf.SetXY(20, pdf.GetY()+5)
+	}
+	if len(d.Chart) > 0 {
+		drawSectionHeader(pdf, "Financial Overview")
+		drawBarChart(pdf, d.Chart)
+		pdf.SetXY(20, pdf.GetY()+5)
+	}
+	if len(d.Table) > 0 {
+		drawSectionHeader(pdf, "Dataset")
+		drawTable(pdf, d.Table)
+		pdf.SetXY(20, pdf.GetY()+6)
+	}
+	renderBodyLines(pdf, d.Body)
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -163,12 +232,251 @@ func renderPDF(title, report string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// sanitize replaces characters the core PDF fonts can't encode and strips simple markdown.
+// drawHeader paints the full-width navy header band with the title and today's date.
+func drawHeader(pdf *fpdf.Fpdf, title string) {
+	pdf.SetFillColor(0, 51, 102)
+	pdf.Rect(0, 0, 210, 34, "F")
+
+	// "FINANCIAL REPORT" eyebrow
+	pdf.SetFont("Helvetica", "", 7.5)
+	pdf.SetTextColor(135, 180, 220)
+	pdf.SetXY(20, 8)
+	pdf.CellFormat(130, 5, "FINANCIAL REPORT", "", 0, "L", false, 0, "")
+
+	// Date — right-aligned
+	pdf.SetXY(110, 8)
+	pdf.SetTextColor(160, 200, 230)
+	pdf.CellFormat(80, 5, time.Now().Format("2 January 2006"), "", 0, "R", false, 0, "")
+
+	// Title
+	pdf.SetFont("Helvetica", "B", 15)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetXY(20, 17)
+	pdf.CellFormat(170, 10, sanitize(title), "", 0, "L", false, 0, "")
+}
+
+// drawMetricCards renders a row of summary metric cards below the header.
+func drawMetricCards(pdf *fpdf.Fpdf, metrics []metricCard) {
+	n := float64(len(metrics))
+	gap := 3.0
+	cardW := (170.0 - gap*(n-1)) / n
+	const cardH = 20.0
+	startY := pdf.GetY()
+
+	for i, m := range metrics {
+		x := 20.0 + float64(i)*(cardW+gap)
+
+		pdf.SetFillColor(247, 250, 253)
+		pdf.SetDrawColor(195, 210, 228)
+		pdf.SetLineWidth(0.2)
+		pdf.Rect(x, startY, cardW, cardH, "FD")
+
+		// Label
+		pdf.SetFont("Helvetica", "", 7)
+		pdf.SetTextColor(105, 120, 140)
+		pdf.SetXY(x+2.5, startY+3)
+		pdf.CellFormat(cardW-5, 4.5, strings.ToUpper(sanitize(m.Label)), "", 0, "L", false, 0, "")
+
+		// Value
+		pdf.SetFont("Helvetica", "B", 12)
+		if m.Positive {
+			pdf.SetTextColor(21, 90, 35) // dark green
+		} else {
+			pdf.SetTextColor(0, 51, 102) // navy
+		}
+		pdf.SetXY(x+2.5, startY+10)
+		pdf.CellFormat(cardW-5, 8, sanitize(m.Formatted), "", 0, "L", false, 0, "")
+	}
+	pdf.SetXY(20, startY+cardH)
+}
+
+// drawSectionHeader renders a bold navy section title with a full-width underline.
+func drawSectionHeader(pdf *fpdf.Fpdf, title string) {
+	y := pdf.GetY()
+	pdf.SetFont("Helvetica", "B", 9.5)
+	pdf.SetTextColor(0, 51, 102)
+	pdf.SetXY(20, y)
+	pdf.CellFormat(170, 6, title, "", 1, "L", false, 0, "")
+	lineY := pdf.GetY() - 0.8
+	pdf.SetDrawColor(0, 51, 102)
+	pdf.SetLineWidth(0.4)
+	pdf.Line(20, lineY, 190, lineY)
+	pdf.SetLineWidth(0.2)
+	pdf.SetXY(20, pdf.GetY()+2)
+}
+
+// drawBarChart renders horizontal bars. Positive values are navy, negative values red.
+// Alternating rows have a light tint for readability.
+func drawBarChart(pdf *fpdf.Fpdf, items []barItem) {
+	startY := pdf.GetY()
+	maxVal := 0.0
+	for _, item := range items {
+		if v := math.Abs(item.Value); v > maxVal {
+			maxVal = v
+		}
+	}
+	if maxVal == 0 {
+		return
+	}
+
+	const (
+		labelW  = 60.0
+		gapW    = 2.0
+		barArea = 90.0
+		valueW  = 18.0
+		barH    = 5.5
+		rowH    = 8.0
+	)
+
+	for i, item := range items {
+		y := startY + float64(i)*rowH
+
+		// Alternating row tint
+		if i%2 == 0 {
+			pdf.SetFillColor(248, 251, 254)
+			pdf.Rect(20, y, 170, rowH, "F")
+		}
+
+		// Label
+		pdf.SetFont("Helvetica", "", 8.5)
+		pdf.SetTextColor(45, 55, 72)
+		pdf.SetXY(20, y+(rowH-barH)/2)
+		pdf.CellFormat(labelW, barH, sanitize(item.Label), "", 0, "L", false, 0, "")
+
+		// Bar
+		barW := math.Abs(item.Value) / maxVal * barArea
+		if item.Value >= 0 {
+			pdf.SetFillColor(25, 84, 153)
+		} else {
+			pdf.SetFillColor(165, 42, 42)
+		}
+		pdf.Rect(20+labelW+gapW, y+(rowH-barH)/2, barW, barH, "F")
+
+		// Value label
+		pdf.SetFont("Helvetica", "", 7.5)
+		pdf.SetTextColor(25, 84, 153)
+		pdf.SetXY(20+labelW+gapW+barArea+1, y+(rowH-barH)/2)
+		pdf.CellFormat(valueW, barH, formatChartValue(item.Value), "", 0, "L", false, 0, "")
+	}
+	pdf.SetXY(20, startY+float64(len(items))*rowH)
+}
+
+// drawTable renders the dataset as a two-column table with alternating row shading.
+func drawTable(pdf *fpdf.Fpdf, rows []tableRow) {
+	const (
+		labelW = 132.0
+		valW   = 38.0
+		hdrH   = 7.0
+		rowH   = 6.0
+	)
+
+	// Header
+	pdf.SetFillColor(0, 51, 102)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetFont("Helvetica", "B", 8.5)
+	pdf.SetXY(20, pdf.GetY())
+	pdf.CellFormat(labelW, hdrH, "  Item", "0", 0, "L", true, 0, "")
+	pdf.CellFormat(valW, hdrH, "Amount  ", "0", 1, "R", true, 0, "")
+
+	// Data rows
+	pdf.SetFont("Helvetica", "", 8.5)
+	for i, row := range rows {
+		if i%2 == 0 {
+			pdf.SetFillColor(244, 248, 252)
+		} else {
+			pdf.SetFillColor(255, 255, 255)
+		}
+		pdf.SetTextColor(45, 55, 72)
+		pdf.SetXY(20, pdf.GetY())
+		pdf.CellFormat(labelW, rowH, "  "+sanitize(row.Label), "0", 0, "L", true, 0, "")
+		pdf.CellFormat(valW, rowH, sanitize(row.Formatted)+"  ", "0", 1, "R", true, 0, "")
+	}
+
+	// Bottom rule
+	pdf.SetDrawColor(195, 210, 228)
+	pdf.SetLineWidth(0.3)
+	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
+	pdf.SetLineWidth(0.2)
+}
+
+// renderBodyLines renders prose: ## headings, bullet lists, numbered lists, body text.
+func renderBodyLines(pdf *fpdf.Fpdf, lines []string) {
+	pdf.SetTextColor(45, 55, 72)
+	for _, raw := range lines {
+		line := strings.TrimRight(raw, "\r ")
+		switch {
+		case strings.HasPrefix(line, "## "):
+			pdf.SetXY(20, pdf.GetY()+4)
+			pdf.SetFont("Helvetica", "B", 9.5)
+			pdf.SetTextColor(0, 51, 102)
+			pdf.CellFormat(170, 6, sanitize(strings.TrimPrefix(line, "## ")), "", 1, "L", false, 0, "")
+			lineY := pdf.GetY() - 0.8
+			pdf.SetDrawColor(0, 51, 102)
+			pdf.SetLineWidth(0.3)
+			pdf.Line(20, lineY, 190, lineY)
+			pdf.SetLineWidth(0.2)
+			pdf.SetXY(20, pdf.GetY()+2)
+			pdf.SetTextColor(45, 55, 72)
+
+		case strings.HasPrefix(line, "- "):
+			pdf.SetFont("Helvetica", "", 9.5)
+			pdf.SetTextColor(45, 55, 72)
+			pdf.SetXY(20, pdf.GetY())
+			pdf.CellFormat(6, 5.5, "-", "", 0, "R", false, 0, "")
+			pdf.SetX(28)
+			pdf.MultiCell(162, 5.5, sanitize(strings.TrimPrefix(line, "- ")), "", "L", false)
+
+		case len(line) >= 4 && line[0] >= '1' && line[0] <= '9' && line[1] == '.':
+			pdf.SetFont("Helvetica", "", 9.5)
+			pdf.SetTextColor(45, 55, 72)
+			idx := strings.Index(line, ". ")
+			if idx > 0 && idx < 4 {
+				pdf.SetXY(20, pdf.GetY())
+				pdf.CellFormat(8, 5.5, line[:idx+1]+".", "", 0, "L", false, 0, "")
+				pdf.SetX(30)
+				pdf.MultiCell(160, 5.5, sanitize(line[idx+2:]), "", "L", false)
+			} else {
+				pdf.SetX(20)
+				pdf.MultiCell(170, 5.5, sanitize(line), "", "L", false)
+			}
+
+		case strings.TrimSpace(line) == "---":
+			pdf.SetDrawColor(210, 215, 222)
+			pdf.SetLineWidth(0.2)
+			y := pdf.GetY() + 2
+			pdf.Line(20, y, 190, y)
+			pdf.SetXY(20, y+4)
+
+		case strings.TrimSpace(line) == "":
+			pdf.SetXY(20, pdf.GetY()+2.5)
+
+		case strings.HasPrefix(strings.TrimSpace(line), "_"):
+			// Italic disclaimer lines (e.g. _Workshop demo_)
+			pdf.SetFont("Helvetica", "I", 8)
+			pdf.SetTextColor(120, 130, 145)
+			pdf.SetX(20)
+			pdf.MultiCell(170, 5, sanitize(strings.Trim(strings.TrimSpace(line), "_")), "", "L", false)
+			pdf.SetTextColor(45, 55, 72)
+
+		default:
+			pdf.SetFont("Helvetica", "", 9.5)
+			pdf.SetTextColor(45, 55, 72)
+			pdf.SetX(20)
+			pdf.MultiCell(170, 5.5, sanitize(line), "", "L", false)
+		}
+	}
+}
+
+// sanitize makes text safe for fpdf's Latin-1 core fonts.
 func sanitize(s string) string {
 	s = strings.ReplaceAll(s, "**", "")
-	s = strings.ReplaceAll(s, "_", "")
-	s = strings.ReplaceAll(s, "•", "-")
-	// Replace any remaining non-Latin1 runes with '?'
+	s = strings.ReplaceAll(s, "\u2022", "-") // bullet
+	s = strings.ReplaceAll(s, "\u2013", "-") // en dash
+	s = strings.ReplaceAll(s, "\u2014", "-") // em dash
+	s = strings.ReplaceAll(s, "\u2018", "'")
+	s = strings.ReplaceAll(s, "\u2019", "'")
+	s = strings.ReplaceAll(s, "\u201c", "\"")
+	s = strings.ReplaceAll(s, "\u201d", "\"")
 	var b strings.Builder
 	for _, r := range s {
 		if r > 255 {
@@ -178,6 +486,25 @@ func sanitize(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// formatChartValue formats a dollar amount compactly for bar-chart value labels.
+func formatChartValue(v float64) string {
+	abs := math.Abs(v)
+	neg := ""
+	if v < 0 {
+		neg = "-"
+	}
+	switch {
+	case abs >= 1e9:
+		return fmt.Sprintf("%s$%.1fB", neg, abs/1e9)
+	case abs >= 1e6:
+		return fmt.Sprintf("%s$%.2fM", neg, abs/1e6)
+	case abs >= 1e3:
+		return fmt.Sprintf("%s$%.0fK", neg, abs/1e3)
+	default:
+		return fmt.Sprintf("%s$%.0f", neg, abs)
+	}
 }
 
 func uploadPDF(cfg config, data []byte) error {
