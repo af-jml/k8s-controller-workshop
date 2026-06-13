@@ -1,0 +1,50 @@
+# The mock AI service. Returns a deterministic markdown report so the workshop needs no
+# API keys or internet access. Swap in a real provider later via env vars (see src/mock-ai).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-ai
+  namespace: report-queue
+  labels:
+    app: mock-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-ai
+  template:
+    metadata:
+      labels:
+        app: mock-ai
+    spec:
+      containers:
+        - name: mock-ai
+          image: ghcr.io/your-org/k8s-controller-workshop/mock-ai:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-ai
+  namespace: report-queue
+  labels:
+    app: mock-ai
+spec:
+  selector:
+    app: mock-ai
+  ports:
+    - port: 8080
+      targetPort: 8080

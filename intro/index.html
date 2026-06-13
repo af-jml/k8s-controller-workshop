@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kubernetes Controllers — Workshop Intro</title>
+
+    <!--
+      This presentation uses reveal.js from a CDN. If your venue WiFi is unreliable,
+      vendor reveal.js locally: download https://github.com/hakimel/reveal.js/releases,
+      drop it next to this file, and update the two <link>/<script> URLs below.
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css" id="theme" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+    <style>
+      .reveal pre code { max-height: 500px; }
+      .reveal section img { border: none; background: none; box-shadow: none; }
+      .reveal .small { font-size: 0.7em; }
+      .reveal .muted { color: #9fb3c8; }
+      .reveal table { font-size: 0.7em; }
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <!-- Title -->
+        <section>
+          <h1>Kubernetes Controllers</h1>
+          <h3>From resources to operators</h3>
+          <p class="muted">A hands-on workshop · AI Report Queue</p>
+        </section>
+
+        <!-- Why -->
+        <section>
+          <h2>Why this workshop?</h2>
+          <ul>
+            <li>Almost everyone has <em>used</em> Kubernetes.</li>
+            <li>Far fewer understand <em>how it actually works</em> inside.</li>
+            <li>Custom Resource Definitions are the key that unlocks the mental model:</li>
+          </ul>
+          <blockquote class="fragment">
+            "How does a process in a pod respond to objects in the cluster?"
+          </blockquote>
+          <p class="fragment">Today we'll build exactly that — and watch it work live.</p>
+        </section>
+
+        <!-- What is K8s -->
+        <section>
+          <section>
+            <h2>What is Kubernetes, really?</h2>
+            <p>A <strong>declarative</strong> system built on <strong>control loops</strong>.</p>
+            <div class="two-col">
+              <div>
+                <h4>You declare</h4>
+                <pre><code class="language-yaml">kind: Deployment
+spec:
+  replicas: 3</code></pre>
+                <p class="small muted">"I want 3 of these."</p>
+              </div>
+              <div>
+                <h4>Kubernetes reconciles</h4>
+                <p class="small">Controllers continuously compare <em>desired</em> vs
+                  <em>actual</em> and act to close the gap.</p>
+                <p class="small muted">0 running? Create 3. One dies? Make another.</p>
+              </div>
+            </div>
+          </section>
+          <section>
+            <h2>The reconciliation loop</h2>
+            <pre><code class="language-text">for {
+  desired := readSpec()        // what the user asked for
+  actual  := observeWorld()    // what currently exists
+  if actual != desired {
+    act(desired, actual)       // create / update / delete
+  }
+}</code></pre>
+            <p class="fragment">This single idea explains <em>most</em> of Kubernetes.</p>
+          </section>
+        </section>
+
+        <!-- Core resources -->
+        <section>
+          <section>
+            <h2>Core resource types</h2>
+            <table>
+              <tr><th>Resource</th><th>What it is</th></tr>
+              <tr><td><strong>Pod</strong></td><td>One or more containers, scheduled together</td></tr>
+              <tr><td><strong>ReplicaSet</strong></td><td>Keeps N copies of a pod running</td></tr>
+              <tr><td><strong>Deployment</strong></td><td>Manages ReplicaSets; rollouts &amp; rollbacks</td></tr>
+              <tr><td><strong>Service</strong></td><td>Stable network endpoint for a set of pods</td></tr>
+              <tr><td><strong>Ingress</strong></td><td>HTTP routing from outside into Services</td></tr>
+              <tr><td><strong>ConfigMap / Secret</strong></td><td>Configuration &amp; sensitive data</td></tr>
+              <tr><td><strong>Namespace</strong></td><td>A scope to group and isolate resources</td></tr>
+              <tr><td><strong>Job</strong></td><td>Run a pod to completion (we'll use these!)</td></tr>
+            </table>
+          </section>
+          <section>
+            <h2>They build on each other</h2>
+            <pre><code class="language-text">Deployment
+   └── ReplicaSet
+          └── Pod
+                 └── Container(s)
+
+Service  ──routes-to──▶  Pods
+Ingress  ──routes-to──▶  Service</code></pre>
+            <p class="small muted">Each layer is itself reconciled by a controller.</p>
+          </section>
+        </section>
+
+        <!-- Internals -->
+        <section>
+          <section>
+            <h2>What's inside the cluster?</h2>
+            <div class="two-col">
+              <div>
+                <h4>Control plane</h4>
+                <ul class="small">
+                  <li><strong>kube-apiserver</strong> — the front door; the only thing that talks to etcd</li>
+                  <li><strong>etcd</strong> — the database; all cluster state lives here</li>
+                  <li><strong>scheduler</strong> — assigns pods to nodes</li>
+                  <li><strong>controller-manager</strong> — runs the built-in control loops</li>
+                </ul>
+              </div>
+              <div>
+                <h4>On every node</h4>
+                <ul class="small">
+                  <li><strong>kubelet</strong> — starts &amp; supervises containers</li>
+                  <li><strong>kube-proxy</strong> — wires up Service networking</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+          <section>
+            <h2>The API server is the hub</h2>
+            <ul>
+              <li>Everything is a REST resource at <code>/apis/&lt;group&gt;/&lt;version&gt;/...</code></li>
+              <li>Components don't call each other — they <strong>watch the API</strong>.</li>
+              <li>A <strong>watch</strong> is a long-lived stream of add/update/delete events.</li>
+            </ul>
+            <pre class="fragment"><code class="language-text">kubectl get pods --watch
+# the same mechanism every controller uses</code></pre>
+          </section>
+          <section>
+            <h2>How a pod "responds" to a resource</h2>
+            <ol class="small">
+              <li>A process in a pod opens a <strong>watch</strong> on some resource type.</li>
+              <li>The API server streams every change to that process.</li>
+              <li>The process reacts — creating, updating, deleting other resources.</li>
+              <li>It writes results back to the API (e.g. a <code>status</code>).</li>
+            </ol>
+            <p class="fragment">That process is a <strong>controller</strong>. That's the whole trick.</p>
+          </section>
+        </section>
+
+        <!-- CRDs -->
+        <section>
+          <section>
+            <h2>Extending the API: CRDs</h2>
+            <p>A <strong>CustomResourceDefinition</strong> teaches the API server a brand new
+              resource type — with its own schema, validation, and <code>kubectl</code> support.</p>
+            <pre><code class="language-yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: reportrequests.reports.workshop.io
+spec:
+  group: reports.workshop.io
+  names: { kind: ReportRequest, plural: reportrequests }
+  scope: Namespaced
+  versions: [ ... schema ... ]</code></pre>
+          </section>
+          <section>
+            <h2>A CRD alone does nothing</h2>
+            <p>After applying a CRD you can do this…</p>
+            <pre><code class="language-bash">kubectl apply -f my-reportrequest.yaml
+kubectl get reportrequests</code></pre>
+            <p class="fragment">…but the object just <em>sits there</em>. It's only data.</p>
+            <p class="fragment"><strong>You will feel this in step 03.</strong></p>
+          </section>
+          <section>
+            <h2>The operator / controller pattern</h2>
+            <p>Pair a <strong>CRD</strong> (the data) with a <strong>controller</strong> (the behaviour):</p>
+            <pre><code class="language-text">CRD            →  a new noun in the API
+Controller     →  the verb that makes it real
+Together       →  an "Operator"</code></pre>
+            <p class="small muted">Encodes the knowledge a human operator would otherwise apply by hand.</p>
+          </section>
+          <section>
+            <h2>Real-world use cases</h2>
+            <ul class="small">
+              <li>Databases that provision &amp; back themselves up (CloudNativePG, Zalando Postgres)</li>
+              <li>Certificate management (cert-manager: <code>Certificate</code> CRDs)</li>
+              <li>GitOps (Argo CD: <code>Application</code> CRDs)</li>
+              <li>Cloud resources from inside the cluster (Crossplane)</li>
+              <li>Your own domain objects — like today's <code>ReportRequest</code>.</li>
+            </ul>
+          </section>
+        </section>
+
+        <!-- Scenario -->
+        <section>
+          <section>
+            <h2>Today's scenario: AI Report Queue</h2>
+            <p>Users request a financial report. A controller turns each request into a real
+              PDF — and the UI shows it happen live.</p>
+            <pre><code class="language-text">User → Web UI → creates ReportRequest (CRD)
+                       │
+                Controller sees it
+                       │  creates a Job
+                       ▼
+                 Worker Job → calls mock-AI → renders PDF → MinIO
+                       │
+                Controller updates status → UI shows it live</code></pre>
+          </section>
+          <section>
+            <h2>Why this design teaches well</h2>
+            <ul class="small">
+              <li>The controller <strong>creates other Kubernetes objects</strong> (Jobs) — the real operator pattern, visible in k9s.</li>
+              <li>Owner references mean deleting a request <strong>garbage-collects</strong> its Job.</li>
+              <li>The <strong>status subresource</strong> shows desired-vs-actual in action.</li>
+              <li>A few seconds of "work" make <code>Pending → Processing → Completed</code> visible.</li>
+            </ul>
+          </section>
+        </section>
+
+        <!-- Agenda -->
+        <section>
+          <h2>Agenda</h2>
+          <table>
+            <tr><td>01</td><td>Setup — kind, kubectl, k9s, a local cluster</td></tr>
+            <tr><td>02</td><td>Deploy the app — web UI, MinIO, mock-AI</td></tr>
+            <tr><td>03</td><td>Custom resources — apply the CRD, create a request (nothing happens!)</td></tr>
+            <tr><td>04</td><td>The controller — deploy it, watch the magic</td></tr>
+            <tr><td>05</td><td>Wrap-up — recap &amp; extension challenges</td></tr>
+          </table>
+          <p class="fragment">Let's build it. → open <code>01-setup/</code></p>
+        </section>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        plugins: [RevealHighlight, RevealNotes],
+      });
+    </script>
+  </body>
+</html>

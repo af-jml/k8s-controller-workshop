@@ -1,0 +1,104 @@
+# The controller: the piece that makes ReportRequests actually *do* something.
+#
+# Until this is deployed (step 03), ReportRequest objects just sit in the API with no
+# status. Once the controller is running, its reconcile loop creates a worker Job per
+# request and updates the request's status as the Job progresses.
+#
+# RBAC: the controller's ServiceAccount is granted the permissions its reconcile loop
+# needs — watch ReportRequests, update their status, and create/observe Jobs.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: report-controller
+  namespace: report-queue
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: report-controller
+rules:
+  - apiGroups: ["reports.workshop.io"]
+    resources: ["reportrequests"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["reports.workshop.io"]
+    resources: ["reportrequests/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: report-controller
+subjects:
+  - kind: ServiceAccount
+    name: report-controller
+    namespace: report-queue
+roleRef:
+  kind: ClusterRole
+  name: report-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-controller
+  namespace: report-queue
+  labels:
+    app: report-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-controller
+  template:
+    metadata:
+      labels:
+        app: report-controller
+    spec:
+      serviceAccountName: report-controller
+      containers:
+        - name: controller
+          image: ghcr.io/your-org/k8s-controller-workshop/controller:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            # The image the controller uses for each worker Job.
+            - name: WORKER_IMAGE
+              value: ghcr.io/your-org/k8s-controller-workshop/worker:latest
+            - name: MOCK_AI_URL
+              value: http://mock-ai.report-queue.svc.cluster.local:8080
+            - name: MINIO_ENDPOINT
+              value: minio.report-queue.svc.cluster.local:9000
+            - name: MINIO_BUCKET
+              value: reports
+            - name: MINIO_SECRET
+              value: minio-credentials
+            # How long the worker pretends to "think", so status changes are visible.
+            - name: PROCESSING_DELAY_SECONDS
+              value: "5"
+          ports:
+            - containerPort: 8081
+              name: metrics
+            - containerPort: 8082
+              name: health
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi

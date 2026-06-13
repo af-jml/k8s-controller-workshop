@@ -1,0 +1,124 @@
+# The web app: a UI to create ReportRequest custom resources and watch them live.
+#
+# It needs RBAC permission to list/watch/create ReportRequests in this namespace — its
+# ServiceAccount is granted exactly that by the Role below. Note it CANNOT create Jobs:
+# only the controller does that. This separation is a good talking point.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web-app
+  namespace: report-queue
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: web-app
+  namespace: report-queue
+rules:
+  - apiGroups: ["reports.workshop.io"]
+    resources: ["reportrequests"]
+    verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: web-app
+  namespace: report-queue
+subjects:
+  - kind: ServiceAccount
+    name: web-app
+    namespace: report-queue
+roleRef:
+  kind: Role
+  name: web-app
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  namespace: report-queue
+  labels:
+    app: web-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      serviceAccountName: web-app
+      containers:
+        - name: web-app
+          image: ghcr.io/your-org/k8s-controller-workshop/web-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NAMESPACE
+              value: report-queue
+            - name: MINIO_ENDPOINT
+              value: minio.report-queue.svc.cluster.local
+            - name: MINIO_PORT
+              value: "9000"
+            - name: MINIO_BUCKET
+              value: reports
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretkey
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-app
+  namespace: report-queue
+  labels:
+    app: web-app
+spec:
+  selector:
+    app: web-app
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-app
+  namespace: report-queue
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-app
+                port:
+                  number: 80

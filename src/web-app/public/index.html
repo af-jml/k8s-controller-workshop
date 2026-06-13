@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Report Queue</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>AI Report Queue</h1>
+      <p class="subtitle">
+        Create a report request. A Kubernetes controller will pick it up, run a worker
+        Job, and produce a PDF. Watch the status change live.
+      </p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>New report request</h2>
+        <form id="report-form">
+          <label>
+            Title
+            <input name="title" required placeholder="Q2 Revenue Analysis" />
+          </label>
+          <label>
+            Financial data
+            <textarea name="dataset" rows="5" required
+              placeholder="Revenue: 1.2M&#10;Costs: 800K&#10;Net: 400K"></textarea>
+          </label>
+          <label>
+            Instructions (optional)
+            <input name="instructions" placeholder="Focus on cost reduction opportunities" />
+          </label>
+          <button type="submit" id="submit-btn">Create report</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Requests</h2>
+          <span id="connection" class="badge badge-pending">connecting…</span>
+        </div>
+        <table id="reports-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Job</th>
+              <th>Message</th>
+              <th>PDF</th>
+            </tr>
+          </thead>
+          <tbody id="reports-body">
+            <tr class="empty"><td colspan="5">No requests yet. Create one above.</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

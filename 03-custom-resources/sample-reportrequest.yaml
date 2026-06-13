@@ -1,0 +1,19 @@
+# A sample ReportRequest. Apply it with:
+#   kubectl apply -f sample-reportrequest.yaml
+#
+# In step 03 (no controller yet) this object will just sit there with no status —
+# proving that a CRD on its own is just data. In step 04 the controller picks it up.
+apiVersion: reports.workshop.io/v1alpha1
+kind: ReportRequest
+metadata:
+  name: q2-revenue-analysis
+  namespace: report-queue
+spec:
+  title: Q2 Revenue Analysis
+  dataset: |
+    Revenue: 1.20M
+    Cost of goods: 0.55M
+    Operating expenses: 0.25M
+    Net profit: 0.40M
+  instructions: Highlight the largest cost centres and suggest savings.
+  format: pdf

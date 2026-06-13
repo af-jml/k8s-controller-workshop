@@ -1,0 +1,7 @@
+# Namespace that holds every workshop component.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: report-queue
+  labels:
+    workshop: report-queue
