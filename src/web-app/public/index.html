@@ -23,11 +23,19 @@
             Title
             <input name="title" required placeholder="Q2 Revenue Analysis" />
           </label>
-          <label>
-            Financial data
-            <textarea name="dataset" rows="5" required
-              placeholder="Revenue: 1.2M&#10;Costs: 800K&#10;Net: 400K"></textarea>
-          </label>
+          <div class="field-group">
+            <div class="field-header">
+              <span class="field-label">Financial data</span>
+              <div class="presets">
+                <button type="button" class="preset-btn" data-preset="pl">P&amp;L</button>
+                <button type="button" class="preset-btn" data-preset="cashflow">Cash Flow</button>
+                <button type="button" class="preset-btn" data-preset="budget">Budget</button>
+              </div>
+            </div>
+            <div id="dataset-editor" class="dataset-editor"></div>
+            <button type="button" id="add-row-btn" class="add-row-btn">+ Add row</button>
+            <input type="hidden" name="dataset" id="dataset-hidden" />
+          </div>
           <label>
             Instructions (optional)
             <input name="instructions" placeholder="Focus on cost reduction opportunities" />

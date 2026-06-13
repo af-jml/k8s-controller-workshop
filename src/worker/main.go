@@ -207,9 +207,10 @@ func renderPDF(title string, d reportData) ([]byte, error) {
 
 	pdf.AddPage()
 	drawHeader(pdf, title)
-	pdf.SetXY(20, 40)
+	pdf.SetXY(20, 44)
 
 	if len(d.Metrics) > 0 {
+		drawSectionHeader(pdf, "Key Performance Indicators")
 		drawMetricCards(pdf, d.Metrics)
 		pdf.SetXY(20, pdf.GetY()+5)
 	}
@@ -232,27 +233,38 @@ func renderPDF(title string, d reportData) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// drawHeader paints the full-width navy header band with the title and today's date.
+// drawHeader paints the full-width navy header band with title, date, and a gold accent stripe.
 func drawHeader(pdf *fpdf.Fpdf, title string) {
+	// Navy background band
 	pdf.SetFillColor(0, 51, 102)
-	pdf.Rect(0, 0, 210, 34, "F")
+	pdf.Rect(0, 0, 210, 38, "F")
+
+	// Gold accent stripe at the bottom of the header
+	pdf.SetFillColor(184, 148, 63)
+	pdf.Rect(0, 35, 210, 3, "F")
 
 	// "FINANCIAL REPORT" eyebrow
 	pdf.SetFont("Helvetica", "", 7.5)
 	pdf.SetTextColor(135, 180, 220)
-	pdf.SetXY(20, 8)
+	pdf.SetXY(20, 9)
 	pdf.CellFormat(130, 5, "FINANCIAL REPORT", "", 0, "L", false, 0, "")
 
 	// Date — right-aligned
-	pdf.SetXY(110, 8)
+	pdf.SetXY(110, 9)
 	pdf.SetTextColor(160, 200, 230)
 	pdf.CellFormat(80, 5, time.Now().Format("2 January 2006"), "", 0, "R", false, 0, "")
 
 	// Title
 	pdf.SetFont("Helvetica", "B", 15)
 	pdf.SetTextColor(255, 255, 255)
-	pdf.SetXY(20, 17)
-	pdf.CellFormat(170, 10, sanitize(title), "", 0, "L", false, 0, "")
+	pdf.SetXY(20, 18)
+	pdf.CellFormat(140, 10, sanitize(title), "", 0, "L", false, 0, "")
+
+	// "Prepared by" label — right side of the title row
+	pdf.SetFont("Helvetica", "I", 7)
+	pdf.SetTextColor(160, 200, 230)
+	pdf.SetXY(140, 21)
+	pdf.CellFormat(50, 5, "Prepared by AI Report Queue", "", 0, "R", false, 0, "")
 }
 
 // drawMetricCards renders a row of summary metric cards below the header.
@@ -266,16 +278,25 @@ func drawMetricCards(pdf *fpdf.Fpdf, metrics []metricCard) {
 	for i, m := range metrics {
 		x := 20.0 + float64(i)*(cardW+gap)
 
+		// Card background
 		pdf.SetFillColor(247, 250, 253)
 		pdf.SetDrawColor(195, 210, 228)
 		pdf.SetLineWidth(0.2)
 		pdf.Rect(x, startY, cardW, cardH, "FD")
 
+		// Left accent strip
+		if m.Positive {
+			pdf.SetFillColor(21, 90, 35) // green
+		} else {
+			pdf.SetFillColor(0, 51, 102) // navy
+		}
+		pdf.Rect(x, startY, 2.5, cardH, "F")
+
 		// Label
 		pdf.SetFont("Helvetica", "", 7)
 		pdf.SetTextColor(105, 120, 140)
-		pdf.SetXY(x+2.5, startY+3)
-		pdf.CellFormat(cardW-5, 4.5, strings.ToUpper(sanitize(m.Label)), "", 0, "L", false, 0, "")
+		pdf.SetXY(x+5, startY+3)
+		pdf.CellFormat(cardW-7, 4.5, strings.ToUpper(sanitize(m.Label)), "", 0, "L", false, 0, "")
 
 		// Value
 		pdf.SetFont("Helvetica", "B", 12)
@@ -284,8 +305,8 @@ func drawMetricCards(pdf *fpdf.Fpdf, metrics []metricCard) {
 		} else {
 			pdf.SetTextColor(0, 51, 102) // navy
 		}
-		pdf.SetXY(x+2.5, startY+10)
-		pdf.CellFormat(cardW-5, 8, sanitize(m.Formatted), "", 0, "L", false, 0, "")
+		pdf.SetXY(x+5, startY+10)
+		pdf.CellFormat(cardW-7, 8, sanitize(m.Formatted), "", 0, "L", false, 0, "")
 	}
 	pdf.SetXY(20, startY+cardH)
 }
@@ -327,6 +348,15 @@ func drawBarChart(pdf *fpdf.Fpdf, items []barItem) {
 		barH    = 5.5
 		rowH    = 8.0
 	)
+
+	// Vertical grid lines at 25 %, 50 %, 75 % of the bar area
+	totalH := float64(len(items)) * rowH
+	pdf.SetDrawColor(220, 228, 240)
+	pdf.SetLineWidth(0.15)
+	for _, pct := range []float64{0.25, 0.5, 0.75} {
+		gx := 20 + labelW + gapW + pct*barArea
+		pdf.Line(gx, startY, gx, startY+totalH)
+	}
 
 	for i, item := range items {
 		y := startY + float64(i)*rowH
@@ -392,10 +422,13 @@ func drawTable(pdf *fpdf.Fpdf, rows []tableRow) {
 		pdf.CellFormat(valW, rowH, sanitize(row.Formatted)+"  ", "0", 1, "R", true, 0, "")
 	}
 
-	// Bottom rule
-	pdf.SetDrawColor(195, 210, 228)
-	pdf.SetLineWidth(0.3)
+	// Double bottom rule (thick navy + thin grey)
+	pdf.SetDrawColor(0, 51, 102)
+	pdf.SetLineWidth(0.5)
 	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
+	pdf.SetDrawColor(195, 210, 228)
+	pdf.SetLineWidth(0.15)
+	pdf.Line(20, pdf.GetY()+1.5, 190, pdf.GetY()+1.5)
 	pdf.SetLineWidth(0.2)
 }
 

@@ -79,8 +79,13 @@ function subscribe() {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  submitBtn.disabled = true;
+  updateHidden(); // ensure hidden field is current
   const data = Object.fromEntries(new FormData(form).entries());
+  if (!data.dataset || !data.dataset.trim()) {
+    alert('Please add at least one financial data row (label + value).');
+    return;
+  }
+  submitBtn.disabled = true;
   try {
     const res = await fetch('/api/reports', {
       method: 'POST',
@@ -89,6 +94,7 @@ form.addEventListener('submit', async (e) => {
     });
     if (!res.ok) throw new Error(await res.text());
     form.reset();
+    resetDatasetEditor();
   } catch (err) {
     alert('Failed to create report: ' + err.message);
   } finally {
@@ -96,5 +102,88 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+// ─── Dataset row editor ───────────────────────────────────────────────────────
+const presets = {
+  pl: {
+    title: 'Q2 P&L Summary',
+    instructions: 'Highlight the largest cost centres and margin opportunities',
+    rows: [
+      ['Revenue', '1.20M'], ['Cost of goods', '0.55M'], ['Gross profit', '0.65M'],
+      ['Operating expenses', '0.25M'], ['EBITDA', '0.40M'], ['Net profit', '0.33M'],
+    ],
+  },
+  cashflow: {
+    title: 'Q2 Cash Flow Statement',
+    instructions: 'Focus on operating cash generation and working capital trends',
+    rows: [
+      ['Operating activities', '420K'], ['Capital expenditure', '-180K'],
+      ['Free cash flow', '240K'], ['Financing activities', '-50K'],
+      ['Net change in cash', '190K'],
+    ],
+  },
+  budget: {
+    title: 'Budget vs Actual Review',
+    instructions: 'Identify the largest variances and their root causes',
+    rows: [
+      ['Revenue (budget)', '1.00M'], ['Revenue (actual)', '1.15M'],
+      ['Costs (budget)', '0.70M'], ['Costs (actual)', '0.68M'],
+      ['Variance (revenue)', '0.15M'], ['Variance (costs)', '0.02M'],
+    ],
+  },
+};
+
+const dsEditor = document.getElementById('dataset-editor');
+
+function updateHidden() {
+  const lines = [...dsEditor.querySelectorAll('.ds-row')]
+    .map((row) => {
+      const lbl = row.querySelector('.ds-label').value.trim();
+      const val = row.querySelector('.ds-value').value.trim();
+      return lbl && val ? `${lbl}: ${val}` : null;
+    })
+    .filter(Boolean);
+  document.getElementById('dataset-hidden').value = lines.join('\n');
+}
+
+function createDsRow(label = '', value = '') {
+  const row = document.createElement('div');
+  row.className = 'ds-row';
+  row.innerHTML =
+    `<input class="ds-label" placeholder="e.g. Revenue" value="${escapeHtml(label)}" />` +
+    `<span class="ds-sep">:</span>` +
+    `<input class="ds-value" placeholder="e.g. 1.2M" value="${escapeHtml(value)}" />` +
+    `<button type="button" class="ds-remove" aria-label="Remove row">&times;</button>`;
+  row.querySelector('.ds-remove').addEventListener('click', () => { row.remove(); updateHidden(); });
+  row.querySelectorAll('input').forEach((inp) => inp.addEventListener('input', updateHidden));
+  return row;
+}
+
+function resetDatasetEditor() {
+  dsEditor.innerHTML = '';
+  for (let i = 0; i < 3; i++) dsEditor.appendChild(createDsRow());
+  updateHidden();
+}
+
+document.getElementById('add-row-btn').addEventListener('click', () => {
+  dsEditor.appendChild(createDsRow());
+  updateHidden();
+});
+
+document.querySelectorAll('.preset-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const p = presets[btn.dataset.preset];
+    if (!p) return;
+    form.querySelector('[name=title]').value = p.title;
+    form.querySelector('[name=instructions]').value = p.instructions;
+    dsEditor.innerHTML = '';
+    p.rows.forEach(([l, v]) => dsEditor.appendChild(createDsRow(l, v)));
+    updateHidden();
+  });
+});
+
+// Initialise with three blank rows
+resetDatasetEditor();
+
+// ─────────────────────────────────────────────────────────────────────────────
 loadInitial();
 subscribe();
