@@ -13,24 +13,25 @@ renders a PDF financial report, and stores it in MinIO. The UI shows the status 
 > desired state you declared with the actual state of the world. You'll feel this directly
 > in step `03` (nothing happens) versus step `04` (the controller brings the CR to life).
 
-## Agenda (90 minutes)
+## Agenda (~100 minutes)
 
 | Part | Folder | Time | What happens |
 | ---- | ------ | ---- | ------------ |
-| Presentation | [`intro/`](intro/) | 15 min | Why Kubernetes now, why controllers for AI workflows, control-loop mental model |
+| Presentation | [`intro/`](intro/) | 15 min | Why Kubernetes now (sovereign cloud + AI), the control-loop mental model |
 | Setup (live) | [`01-setup/`](01-setup/) | 20 min | Verify tools, create kind cluster, ingress ready, k9s ready |
 | Deploy app stack | [`02-app/`](02-app/) | 15 min | Deploy web app + MinIO + mock-AI and open the UI |
-| CRD + first requests | [`03-custom-resources/`](03-custom-resources/) | 15 min | Apply CRD, create `ReportRequest`, observe inert data before a controller exists |
-| Controller + drills | [`04-controller/`](04-controller/) | 20 min | Deploy controller, watch reconciliation, run guided debugging/failure drill |
-| Team challenge wrap-up | [`05-wrap-up/`](05-wrap-up/) | 5 min | Split into beginner-safe and advanced extension tracks |
-| Buckets (optional) | [`06-buckets/`](06-buckets/) | 15 min | Second CRD: provision real MinIO buckets — "Kubernetes as a cloud API" |
+| Buckets — first CRD | [`03-buckets/`](03-buckets/) | 10 min | Apply the Bucket CRD, create the `reports` bucket, observe inert data |
+| Controller | [`04-controller/`](04-controller/) | 15 min | Deploy the controller; the `reports` bucket is provisioned in MinIO; finalizers |
+| Reports — the pipeline | [`05-reports/`](05-reports/) | 20 min | Create `ReportRequest`s; Jobs render PDFs into the bucket; owner refs / GC |
+| Wrap-up | [`06-wrap-up/`](06-wrap-up/) | 10 min | Recap; beginner-safe & advanced extension challenges |
 
 ## Facilitator mode for mixed experience
 
-Use one shared path until step 04, then split into two tracks in step 05.
+Use one shared path through the build (steps 03–05), then pick extension challenges in the
+wrap-up (step 06).
 
 - Pairing strategy: pair one Kubernetes-experienced participant with one beginner/interested participant.
-- Beginner-safe target: read status, inspect Jobs, recover from one failure drill.
+- Beginner-safe target: read status, inspect Buckets and Jobs, recover from the missing-bucket failure drill.
 - Advanced target: modify controller behavior (finalizer/conditions/retries) and validate end-to-end.
 - Setup fallback: if setup overruns the 20-minute timebox, proceed with one facilitator machine demo while participants follow command output and k9s views.
 
@@ -49,6 +50,8 @@ flowchart LR
     UI -->|presigned URL| MinIO
 ```
 
+0. First, a `Bucket` custom resource provisions the `reports` object store in MinIO (steps
+   03–04). The report pipeline depends on it — the worker no longer creates it implicitly.
 1. The web app creates a `ReportRequest` custom resource via the Kubernetes API.
 2. The controller's reconcile loop sees it, sets `phase: Pending`, and creates a worker **Job**
    (owned by the CR via an owner reference).
@@ -61,8 +64,7 @@ flowchart LR
 
 ```
 intro/                  reveal.js presentation (open index.html in a browser)
-01-setup/ … 05-wrap-up/ numbered workshop steps, each with a README + manifests
-06-buckets/             optional extension: a Bucket CRD provisioned into MinIO
+01-setup/ … 06-wrap-up/ numbered workshop steps, each with a README + manifests
 src/                    buildable source for all container images
   web-app/              TypeScript app (Express backend + static frontend)
   controller/           Go controller (controller-runtime)

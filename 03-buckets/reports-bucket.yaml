@@ -1,0 +1,22 @@
+# The `reports` bucket — the object store the report pipeline writes its PDFs into.
+#
+# This is a REQUIRED prerequisite for the rest of the workshop: in step 05 the worker uploads
+# each generated PDF here, and it no longer creates the bucket itself. Create it now:
+#   kubectl apply -f 03-buckets/reports-bucket.yaml
+#
+# Until the controller is running (step 04) this object just sits there with no status —
+# a CRD on its own is only data. Step 04 brings it to life and the real bucket appears in MinIO.
+apiVersion: storage.workshop.io/v1alpha1
+kind: Bucket
+metadata:
+  name: reports
+  namespace: report-queue
+spec:
+  # Must be "reports": it matches MINIO_BUCKET on the controller/worker/web-app.
+  bucketName: reports
+  # Private: the web app streams PDFs back using server-side credentials, not anonymous access.
+  accessPolicy: private
+  quota: 200Mi
+  # Retain: deleting this resource must NOT wipe the stored PDFs. (The sample buckets in
+  # sample-bucket.yaml use deletionPolicy: Delete to demonstrate the finalizer in step 04.)
+  deletionPolicy: Retain

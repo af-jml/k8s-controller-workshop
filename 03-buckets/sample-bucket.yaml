@@ -1,11 +1,16 @@
-# Sample Bucket resources. Apply with:
-#   kubectl apply -f sample-bucket.yaml
+# Extra sample Bucket resources for exploration. The `reports` bucket lives in its own file
+# (reports-bucket.yaml) because the report pipeline depends on it; these two are just for
+# playing with access policies and the deletion finalizer (used in step 04). Apply with:
+#   kubectl apply -f 03-buckets/sample-bucket.yaml
 #
-# Before the controller is running, these just sit there with no status — a CRD is only
-# data. Once the controller reconciles them, the real buckets appear in MinIO with the
+# Before the controller is running (step 04) these just sit there with no status — a CRD is
+# only data. Once the controller reconciles them, the real buckets appear in MinIO with the
 # requested access policy and quota. Watch them with:
 #   kubectl get buckets -n report-queue -w
 #   # or in k9s: :buckets
+#
+# Note: analytics-exports uses deletionPolicy: Delete (finalizer removes the real bucket on
+# delete); public-assets uses Retain. Compare the two when you delete them in step 04.
 ---
 apiVersion: storage.workshop.io/v1alpha1
 kind: Bucket

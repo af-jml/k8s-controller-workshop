@@ -101,13 +101,13 @@ Use this wait time to ask:
 
 Open <http://localhost:8080> in your browser.
 
-You should see the **AI Report Queue** UI with a form and an empty requests table. The
-"connecting…" badge should switch to **live** — that's the browser holding an open
-Server-Sent-Events stream backed by a Kubernetes *watch*.
+You should see the **AI Report Queue** UI. It has two tabs — **Reports** and **Buckets** —
+both backed by Kubernetes custom resources. The "connecting…" badge should switch to **live**:
+that's the browser holding an open Server-Sent-Events stream backed by a Kubernetes *watch*.
 
-> Try creating a report now. It will appear in the table as **Pending** and… stay there.
-> That's expected — there's no controller yet. We fix that in step 04. First, let's
-> understand the custom resource behind that row → step 03.
+> Nothing will actually process yet — there's no controller running. That's the whole point of
+> the next steps. First we'll create our very first custom resource — the storage **bucket**
+> the reports will need — and watch it sit inert until a controller brings it to life → step 03.
 
 ## Troubleshooting
 
@@ -120,4 +120,4 @@ Server-Sent-Events stream backed by a Kubernetes *watch*.
 
 ---
 
-Next: [`03-custom-resources/`](../03-custom-resources/) — the CRD behind the UI.
+Next: [`03-buckets/`](../03-buckets/) — your first custom resource (the `reports` bucket).

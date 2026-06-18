@@ -1,4 +1,4 @@
-# 05 · Wrap-up
+# 06 · Wrap-up
 
 Time: ~10 minutes.
 
@@ -6,18 +6,22 @@ Time: ~10 minutes.
 
 ```mermaid
 flowchart LR
-    User([You]) -->|create ReportRequest| UI[Web App]
+    User([You]) -->|create Bucket| UI[Web App]
+    User -->|create ReportRequest| UI
     UI -->|K8s API| API[(API server)]
     Ctrl[Controller] -->|watch| API
+    Ctrl -->|provision bucket| MinIO[(MinIO)]
     Ctrl -->|create Job| Job[Worker Job]
     Job -->|prompt| AI[mock-ai]
-    Job -->|PDF| MinIO[(MinIO)]
+    Job -->|PDF| MinIO
     Ctrl -->|update status| API
     UI -->|watch + SSE| API
 ```
 
-You stood up a real operator: a **CRD** (`ReportRequest`) plus a **controller** that
-reconciles it by creating Kubernetes **Jobs**, and a UI that reflects status **live**.
+You stood up a real operator — one controller reconciling **two** custom resources: a
+`Bucket` (provisioned directly into MinIO, cleaned up with a finalizer) and a
+`ReportRequest` (turned into a Kubernetes **Job** that renders a PDF into that bucket) — with
+a UI that reflects status **live**.
 
 ## The ideas to take home
 
@@ -27,7 +31,10 @@ reconciles it by creating Kubernetes **Jobs**, and a UI that reflects status **l
    *operator*.
 4. **The reconcile loop** continuously closes the gap between `spec` (desired) and the world
    (actual), writing results to `status`.
-5. **Owner references** give you automatic cleanup (garbage collection).
+5. **Owner references** give you automatic cleanup (garbage collection) for Kubernetes
+   objects — and **finalizers** do the same for *external* state (the MinIO bucket).
+6. **Kubernetes can be the API for anything.** A `Bucket` resource provisioned real object
+   storage — the same pattern Crossplane and the cloud operators use.
 
 ## Extension challenges
 
@@ -37,8 +44,8 @@ Pick one and explore — starter code lives in [`src/`](../src/).
   `AI_PROVIDER=openai` and an `OPENAI_API_KEY` secret on the `mock-ai` Deployment.
 - **Add retries / backoff.** Make the worker fail sometimes and have the controller handle
   it gracefully (it already respects the Job's `backoffLimit`).
-- **Add a finalizer.** Delete the PDF from MinIO when a `ReportRequest` is deleted, before
-  the object is removed.
+- **Add a finalizer to `ReportRequest`.** Delete its PDF from MinIO on deletion, before the
+  object is removed (the `Bucket` controller already shows the pattern).
 - **Add status conditions.** Replace the single `phase` with richer
   `status.conditions` (the convention used by built-in resources).
 - **Add printer columns.** Already done for Phase/Title/Job — add "Completed At".

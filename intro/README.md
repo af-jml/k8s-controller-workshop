@@ -26,7 +26,7 @@ locally:
 2. Kubernetes as a declarative system built on control loops.
 3. Why controllers are useful: CRD (noun) + controller (verb).
 4. The workshop scenario — AI Report Queue — and how it maps to real AI batch/inference workflows.
-5. The 90-minute agenda and success criteria.
+5. The workshop agenda (buckets first, then the report pipeline) and success criteria.
 
 ## Optional appendix (only if time allows)
 

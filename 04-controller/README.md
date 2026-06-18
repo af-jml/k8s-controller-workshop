@@ -1,23 +1,34 @@
 # 04 · Deploy the controller
 
-Goal: deploy the controller and watch it bring your `ReportRequest` objects to life. This is
-the payoff: the reconcile loop, Jobs spawned per request, status updates, and live UI changes.
+Goal: deploy the controller and watch it bring your custom resources to life. This is the
+payoff for step 03: the `reports` **Bucket** you declared becomes a **real bucket in MinIO**.
+This is the reconcile loop in action — desired state (your `Bucket` spec) driven into actual
+state (a provisioned bucket).
 
-Time: ~20 minutes.
+Time: ~15 minutes.
 
 ## What the controller does
 
-For each `ReportRequest`, the controller's reconcile loop:
+It's a single controller binary that reconciles **two** custom resources:
 
-1. Sees the new object (via a **watch**).
-2. Creates a worker **Job**, owned by the request (an *owner reference*).
-3. Sets `status.phase = Processing` and records the Job name.
-4. Watches the Job. When it succeeds, sets `phase = Completed` and the PDF's object key;
-   if it fails, `phase = Failed`.
+- **`Bucket`** → provisions the bucket directly in MinIO (create, set access policy, set
+  quota) and cleans it up via a finalizer on deletion. *(This step.)*
+- **`ReportRequest`** → creates a worker Job per request that renders a PDF. *(Step 05.)*
 
-The worker Job calls the mock-AI service, renders a PDF, and uploads it to MinIO.
+## 1. Register the ReportRequest type first
 
-## 1. Deploy the controller
+The controller watches **both** CRDs, and controller-runtime won't start if either type is
+missing. You installed the `Bucket` CRD in step 03; install the `ReportRequest` CRD now so the
+controller can come up cleanly:
+
+```bash
+kubectl apply -f manifests/crd.yaml
+```
+
+> Try skipping this and you'll see the controller pod crash-loop with a "no matches for kind
+> ReportRequest" error — a good illustration that a controller needs its API types to exist.
+
+## 2. Deploy the controller
 
 ```bash
 kubectl apply -f 04-controller/controller.yaml
@@ -27,88 +38,86 @@ This file contains:
 
 - a **ServiceAccount** for the controller,
 - a **ClusterRole** + **ClusterRoleBinding** granting exactly the permissions the reconcile
-  loop needs: watch/update ReportRequests and their `status`, and create/observe Jobs,
-- the controller **Deployment**, configured via env vars (worker image, MinIO, mock-AI).
+  loops need: watch/update `Buckets` and `ReportRequests` (and their `status`), and
+  create/observe Jobs,
+- the controller **Deployment**. Note its env includes the real MinIO **credentials** — the
+  Bucket controller talks to MinIO itself (unlike the report worker, which gets them passed
+  down to its Job).
 
-## 2. Watch it reconcile the request you already created
+## 3. Watch the `reports` bucket become real
 
-You created a `ReportRequest` in step 03 that has been sitting at Pending. The moment the
-controller starts, it reconciles it. Watch it happen:
-
-```bash
-kubectl get reportrequests -n report-queue -w
-```
-
-You should see the phase move: (empty) → **Processing** → **Completed** within a few seconds.
-
-In parallel, watch the Job appear:
+The moment the controller starts, it reconciles the `reports` Bucket that was sitting inert
+since step 03. Watch the phase flip:
 
 ```bash
-kubectl get jobs,pods -n report-queue -w
+kubectl get buckets -n report-queue -w
+# reports … Phase: (empty) → Ready  within a second or two
 ```
 
-Or — much nicer — watch all of it in **k9s**: `:reportrequests`, `:jobs`, `:pods`. You'll
-literally see a worker pod spin up, run, and complete.
-
-## 3. Watch the UI update live
-
-Open <http://localhost:8080>. The row for your request updates **without a refresh**:
-Pending → Processing → Completed, and a **Download** link appears. Click it to view the
-generated PDF (the web app streams it from MinIO).
-
-## 4. Create more — feel the loop
-
-Submit a few requests from the UI. Each one triggers the same cycle. Watch the Jobs come and
-go in k9s. This is the operator pattern in action.
-
-## 5. Look under the hood
+Now confirm the **real bucket exists** in MinIO (it didn't in step 03):
 
 ```bash
-# Controller logs — see the reconcile decisions
-kubectl logs -n report-queue deploy/report-controller -f
-
-# A finished request's full object, including controller-owned status
-kubectl get reportrequest <name> -n report-queue -o yaml
-
-# The Job's owner reference points back at the ReportRequest
-kubectl get job -n report-queue -o yaml | grep -A6 ownerReferences
+kubectl port-forward -n report-queue deploy/minio 9001:9001
+# open http://localhost:9001 (minioadmin / minioadmin) → the `reports` bucket is now there
 ```
 
-### Owner references & garbage collection
-
-Because each Job is *owned* by its ReportRequest, deleting the request cleans up its Job
-automatically:
+Inspect the controller-owned status and the endpoint it recorded:
 
 ```bash
-kubectl delete reportrequest <name> -n report-queue
-kubectl get jobs -n report-queue   # the owned Job is gone too
+kubectl get bucket reports -n report-queue -o jsonpath='{.status}' | jq
 ```
+
+## 4. See the finalizer (external cleanup)
+
+Owner references only garbage-collect **Kubernetes** objects. A MinIO bucket isn't one, so the
+controller uses a **finalizer** to clean up external state on delete. Apply the two extra
+sample buckets and compare their deletion policies:
+
+```bash
+kubectl apply -f 03-buckets/sample-bucket.yaml
+kubectl get bucket analytics-exports -n report-queue \
+  -o jsonpath='{.metadata.finalizers}'   # => ["storage.workshop.io/finalizer"]
+```
+
+- Delete `analytics-exports` (`deletionPolicy: Delete`): the controller empties and removes
+  the real bucket *before* Kubernetes drops the object.
+- Delete `public-assets` (`deletionPolicy: Retain`): the Kubernetes object goes, the MinIO
+  bucket stays.
+
+```bash
+kubectl delete bucket analytics-exports public-assets -n report-queue
+# watch the MinIO console: analytics-exports disappears, public-assets remains
+```
+
+> Don't delete the `reports` bucket — step 05 needs it. (It's `Retain` anyway, so its PDFs
+> would survive, but keep the resource around.)
 
 ## Talking points
 
 - The controller never talks to the web app directly — both just interact with the **API
   server**. That decoupling is the heart of the Kubernetes model.
 - The controller writes **status**, the user writes **spec**. The reconcile loop closes the
-  gap between them.
-- RBAC is explicit and minimal: the controller can create Jobs; the web app cannot.
+  gap between them — here, all the way out into an external system.
+- Two operator styles in one binary: **create Kubernetes objects** (Jobs, step 05) vs
+  **provision external state** (MinIO buckets, this step).
 
 ## Troubleshooting
 
-- **Phase never changes** — check the controller logs
-  (`kubectl logs -n report-queue deploy/report-controller`). Permission errors point to RBAC;
-  image errors point to a missing worker image (`./scripts/build-and-load.sh`).
-- **Job fails** — inspect the worker pod:
-  `kubectl logs -n report-queue job/report-<name>`. Common causes: MinIO not ready, or the
-  mock-AI service not reachable.
-- **No Download link** — the request must be `Completed`. Confirm the PDF exists in MinIO
-  (the worker logs print the uploaded object key).
+- **Controller crash-loops on startup** — a watched CRD is missing. Confirm both
+  `kubectl get crd buckets.storage.workshop.io` and `…reportrequests.reports.workshop.io`
+  exist (steps 03 and step 1 above).
+- **Bucket stuck with no/empty phase** — check the controller logs
+  (`kubectl logs -n report-queue deploy/report-controller -f`). RBAC errors point to the
+  ClusterRole; connection errors point to `MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY`.
+- **Bucket `Failed`** — read `.status.message`. Usually MinIO isn't ready yet; it will
+  reconcile again shortly.
 
 ## Assessment checkpoint
 
-- Can you map one request from creation to Job completion using commands and logs?
-- Can you show evidence of controller-owned `status` updates?
-- Can you show one owner reference and explain its garbage-collection effect?
+- Can you show the `reports` bucket as a real bucket in MinIO, and point to the controller
+  log line that created it?
+- Can you explain why a finalizer is needed for a Bucket but not for a worker Job?
 
 ---
 
-Next: [`05-wrap-up/`](../05-wrap-up/) — recap & challenges.
+Next: [`05-reports/`](../05-reports/) — drive the report pipeline into the bucket you just provisioned.

@@ -1,8 +1,9 @@
 # A sample ReportRequest. Apply it with:
-#   kubectl apply -f sample-reportrequest.yaml
+#   kubectl apply -f 05-reports/sample-reportrequest.yaml
 #
-# In step 03 (no controller yet) this object will just sit there with no status —
-# proving that a CRD on its own is just data. In step 04 the controller picks it up.
+# By this step the controller is already running (deployed in step 04), so this request is
+# picked up immediately: the controller creates a worker Job that renders a PDF and uploads
+# it to the `reports` bucket you provisioned in step 03.
 apiVersion: reports.workshop.io/v1alpha1
 kind: ReportRequest
 metadata:

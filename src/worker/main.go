@@ -552,14 +552,15 @@ func uploadPDF(cfg config, data []byte) error {
 		return fmt.Errorf("creating minio client: %w", err)
 	}
 
+	// The worker does NOT create the bucket. It's provisioned explicitly as a Bucket custom
+	// resource (workshop step 03); requiring it to pre-exist keeps that dependency visible.
 	exists, err := client.BucketExists(ctx, cfg.Bucket)
 	if err != nil {
 		return fmt.Errorf("checking bucket: %w", err)
 	}
 	if !exists {
-		if err := client.MakeBucket(ctx, cfg.Bucket, minio.MakeBucketOptions{}); err != nil {
-			return fmt.Errorf("creating bucket: %w", err)
-		}
+		return fmt.Errorf("bucket %q does not exist — create it first via a Bucket resource "+
+			"(workshop step 03): kubectl apply -f 03-buckets/reports-bucket.yaml", cfg.Bucket)
 	}
 
 	_, err = client.PutObject(ctx, cfg.Bucket, cfg.ObjectKey,
