@@ -19,6 +19,11 @@ rules:
   - apiGroups: ["reports.workshop.io"]
     resources: ["reportrequests"]
     verbs: ["get", "list", "watch", "create"]
+  # The bucket panel lists/creates/watches Buckets — but still cannot provision anything
+  # in MinIO itself. Only the controller does that. Same RBAC-boundary talking point.
+  - apiGroups: ["storage.workshop.io"]
+    resources: ["buckets"]
+    verbs: ["get", "list", "watch", "create"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

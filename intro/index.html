@@ -46,6 +46,101 @@
           <p class="fragment">Today we'll build exactly that — and watch it work live.</p>
         </section>
 
+        <section>
+          <h2>Why Kubernetes now?</h2>
+          <ul>
+            <li>Platform teams now run mixed workloads: web apps, batch pipelines, and AI jobs.</li>
+            <li>Operational complexity keeps growing: scaling, retries, policy, and compliance.</li>
+            <li>Kubernetes is the common control plane for expressing and automating that intent.</li>
+          </ul>
+          <p class="fragment">Learning controllers means learning how platforms automate decisions, not just deploy containers.</p>
+        </section>
+
+        <!-- Two macro forces: sovereignty + AI -->
+        <section>
+          <section>
+            <h2>Two shifts driving adoption</h2>
+            <p>Beyond "containers are nice", two forces are pushing Kubernetes to the centre <em>right now</em>:</p>
+            <div class="two-col">
+              <div>
+                <h4>🇪🇺 Sovereign clouds</h4>
+                <p class="small muted">Who controls — and can legally access — your data and infrastructure?</p>
+              </div>
+              <div>
+                <h4>🤖 AI hosting</h4>
+                <p class="small muted">Where do you run GPUs, models, and long batch jobs?</p>
+              </div>
+            </div>
+            <p class="fragment">Both end up needing the same thing: a <strong>portable, automatable control plane</strong>.</p>
+            <aside class="notes">
+              These are the two conversations clients are actually having in 2025/26. Kubernetes
+              is the common denominator under both — that's why it's worth understanding deeply.
+            </aside>
+          </section>
+
+          <section>
+            <h2>Force 1: Digital sovereignty</h2>
+            <ul class="small">
+              <li><strong>Regulation &amp; risk:</strong> GDPR, Schrems II and the US CLOUD Act make data
+                <em>location and control</em> a legal question, not just a technical one.</li>
+              <li><strong>Reducing dependency</strong> on the three US hyperscalers — see Gaia-X and
+                sovereign offers like StackIT, OVHcloud, IONOS, Open Telekom Cloud, T-Systems.</li>
+              <li><strong>Kubernetes is the portability layer:</strong> the same declarative API on any
+                provider or on-prem — so you can move, repatriate, or multi-cloud <em>without a rewrite</em>.</li>
+            </ul>
+            <blockquote class="fragment small">
+              Sovereignty isn't only "EU data centre" — it's not being <em>locked in</em> to one vendor's APIs.
+            </blockquote>
+            <aside class="notes">
+              The key insight: a managed proprietary cloud service ties you to that vendor's API.
+              A Kubernetes workload is described in vendor-neutral YAML and runs anywhere — that
+              optionality is itself a form of sovereignty.
+            </aside>
+          </section>
+
+          <section>
+            <h2>Force 2: Hosting AI yourself</h2>
+            <ul class="small">
+              <li><strong>Why self-host:</strong> data privacy, cost control at scale, latency, and
+                avoiding per-token lock-in to a single model API.</li>
+              <li><strong>GPUs are first-class on K8s:</strong> the NVIDIA GPU Operator, device plugins,
+                MIG / time-slicing, and Dynamic Resource Allocation schedule scarce accelerators.</li>
+              <li><strong>An ecosystem already lives here:</strong> KServe, Kubeflow, Ray, and vLLM all
+                run <em>on</em> Kubernetes — it's becoming the default substrate for ML platforms.</li>
+            </ul>
+            <pre class="fragment"><code class="language-text">Inference, training, fine-tuning, evals, batch backfills
+  → long-running, stateful, retry-heavy, GPU-hungry
+  → exactly the workloads controllers are good at</code></pre>
+            <aside class="notes">
+              Note the overlap with sovereignty: many teams self-host models precisely because they
+              can't send sensitive data to a third-party API. The two forces reinforce each other.
+            </aside>
+          </section>
+
+          <section>
+            <h2>The common thread</h2>
+            <p>Both stories converge on Kubernetes for the same two reasons:</p>
+            <pre><code class="language-text">Portability   →  vendor-neutral API; run the same thing anywhere
+Automation    →  control loops manage scale, retries, policy, cost</code></pre>
+            <p class="fragment">…and <strong>automation is exactly what controllers are</strong> — which is what we build today.</p>
+            <aside class="notes">
+              This is the hand-off into the rest of the deck: portability gets you onto Kubernetes,
+              but the value comes from automation, and automation is controllers.
+            </aside>
+          </section>
+        </section>
+
+        <section>
+          <h2>Why controllers in the AI era?</h2>
+          <ul>
+            <li>AI workflows are long-running and stateful: queue, process, retry, publish.</li>
+            <li>Controllers encode operational policy as code (who acts, when, and how).</li>
+            <li>CRDs let product teams expose domain APIs without leaking infrastructure details.</li>
+          </ul>
+          <pre class="fragment"><code class="language-text">ReportRequest is a simple example of a broader pattern:
+InferenceRequest, TrainingRun, FeatureBackfill, EvaluationJob</code></pre>
+        </section>
+
         <!-- What is K8s -->
         <section>
           <section>
@@ -109,10 +204,10 @@ Ingress  ──routes-to──▶  Service</code></pre>
           </section>
         </section>
 
-        <!-- Internals -->
+        <!-- Optional appendix: internals -->
         <section>
           <section>
-            <h2>What's inside the cluster?</h2>
+            <h2>Appendix: what's inside the cluster?</h2>
             <div class="two-col">
               <div>
                 <h4>Control plane</h4>
@@ -133,7 +228,7 @@ Ingress  ──routes-to──▶  Service</code></pre>
             </div>
           </section>
           <section>
-            <h2>The API server is the hub</h2>
+            <h2>Appendix: the API server is the hub</h2>
             <ul>
               <li>Everything is a REST resource at <code>/apis/&lt;group&gt;/&lt;version&gt;/...</code></li>
               <li>Components don't call each other — they <strong>watch the API</strong>.</li>
@@ -143,7 +238,7 @@ Ingress  ──routes-to──▶  Service</code></pre>
 # the same mechanism every controller uses</code></pre>
           </section>
           <section>
-            <h2>How a pod "responds" to a resource</h2>
+            <h2>Appendix: how a pod "responds" to a resource</h2>
             <ol class="small">
               <li>A process in a pod opens a <strong>watch</strong> on some resource type.</li>
               <li>The API server streams every change to that process.</li>
@@ -228,11 +323,11 @@ Together       →  an "Operator"</code></pre>
         <section>
           <h2>Agenda</h2>
           <table>
-            <tr><td>01</td><td>Setup — kind, kubectl, k9s, a local cluster</td></tr>
-            <tr><td>02</td><td>Deploy the app — web UI, MinIO, mock-AI</td></tr>
-            <tr><td>03</td><td>Custom resources — apply the CRD, create a request (nothing happens!)</td></tr>
-            <tr><td>04</td><td>The controller — deploy it, watch the magic</td></tr>
-            <tr><td>05</td><td>Wrap-up — recap &amp; extension challenges</td></tr>
+            <tr><td>01</td><td>Setup (20 min) — kind, kubectl, k9s, local cluster</td></tr>
+            <tr><td>02</td><td>Deploy app (15 min) — web UI, MinIO, mock-AI</td></tr>
+            <tr><td>03</td><td>Custom resources (15 min) — CRD + inert data insight</td></tr>
+            <tr><td>04</td><td>Controller + drills (20 min) — reconcile, debug, recover</td></tr>
+            <tr><td>05</td><td>Team challenge (5-10 min) — beginner-safe and advanced tracks</td></tr>
           </table>
           <p class="fragment">Let's build it. → open <code>01-setup/</code></p>
         </section>

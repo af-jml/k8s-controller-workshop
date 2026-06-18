@@ -20,13 +20,15 @@ locally:
 2. Unzip it into this folder (so you have `intro/reveal.js/`).
 3. Replace the CDN URLs in [`index.html`](index.html) with the local paths.
 
-## What it covers (~30 min)
+## What it covers (core: ~15 min)
 
-1. Why the workshop — the gap between using and understanding Kubernetes.
+1. Why Kubernetes matters now — the two macro forces (European digital sovereignty and self-hosted AI) and the portability + automation they both need.
 2. Kubernetes as a declarative system built on control loops.
-3. Core resource types and how they build on each other.
-4. Internals: API server, etcd, scheduler, controller-manager, kubelet.
-5. How a pod "responds" to resources via the watch mechanism.
-6. CRDs and the operator/controller pattern, with real-world use cases.
-7. The workshop scenario — the AI Report Queue — and why it teaches well.
-8. The agenda.
+3. Why controllers are useful: CRD (noun) + controller (verb).
+4. The workshop scenario — AI Report Queue — and how it maps to real AI batch/inference workflows.
+5. The 90-minute agenda and success criteria.
+
+## Optional appendix (only if time allows)
+
+- Control-plane internals (API server, etcd, scheduler, controller-manager, kubelet).
+- Deeper watch mechanics and networking internals.

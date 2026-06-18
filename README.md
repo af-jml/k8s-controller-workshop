@@ -13,16 +13,26 @@ renders a PDF financial report, and stores it in MinIO. The UI shows the status 
 > desired state you declared with the actual state of the world. You'll feel this directly
 > in step `03` (nothing happens) versus step `04` (the controller brings the CR to life).
 
-## Agenda (~2 hours)
+## Agenda (90 minutes)
 
 | Part | Folder | Time | What happens |
 | ---- | ------ | ---- | ------------ |
-| Presentation | [`intro/`](intro/) | ~30 min | Kubernetes overview, core resources, API & internals, CRDs/operators |
-| Setup | [`01-setup/`](01-setup/) | ~20 min | Install Docker Desktop, kubectl, kind, k9s; create a local cluster |
-| Deploy the app | [`02-app/`](02-app/) | ~25 min | Deploy the web app + MinIO + mock-AI; open it in the browser |
-| Custom resources | [`03-custom-resources/`](03-custom-resources/) | ~20 min | Apply the CRD, create a `ReportRequest`, observe that **nothing processes it** |
-| Deploy the controller | [`04-controller/`](04-controller/) | ~25 min | Deploy the controller; watch it reconcile, spawn Jobs, produce PDFs, update the UI live |
-| Wrap-up | [`05-wrap-up/`](05-wrap-up/) | ~10 min | Recap, cleanup, extension challenges |
+| Presentation | [`intro/`](intro/) | 15 min | Why Kubernetes now, why controllers for AI workflows, control-loop mental model |
+| Setup (live) | [`01-setup/`](01-setup/) | 20 min | Verify tools, create kind cluster, ingress ready, k9s ready |
+| Deploy app stack | [`02-app/`](02-app/) | 15 min | Deploy web app + MinIO + mock-AI and open the UI |
+| CRD + first requests | [`03-custom-resources/`](03-custom-resources/) | 15 min | Apply CRD, create `ReportRequest`, observe inert data before a controller exists |
+| Controller + drills | [`04-controller/`](04-controller/) | 20 min | Deploy controller, watch reconciliation, run guided debugging/failure drill |
+| Team challenge wrap-up | [`05-wrap-up/`](05-wrap-up/) | 5 min | Split into beginner-safe and advanced extension tracks |
+| Buckets (optional) | [`06-buckets/`](06-buckets/) | 15 min | Second CRD: provision real MinIO buckets — "Kubernetes as a cloud API" |
+
+## Facilitator mode for mixed experience
+
+Use one shared path until step 04, then split into two tracks in step 05.
+
+- Pairing strategy: pair one Kubernetes-experienced participant with one beginner/interested participant.
+- Beginner-safe target: read status, inspect Jobs, recover from one failure drill.
+- Advanced target: modify controller behavior (finalizer/conditions/retries) and validate end-to-end.
+- Setup fallback: if setup overruns the 20-minute timebox, proceed with one facilitator machine demo while participants follow command output and k9s views.
 
 ## Architecture
 
@@ -52,13 +62,14 @@ flowchart LR
 ```
 intro/                  reveal.js presentation (open index.html in a browser)
 01-setup/ … 05-wrap-up/ numbered workshop steps, each with a README + manifests
+06-buckets/             optional extension: a Bucket CRD provisioned into MinIO
 src/                    buildable source for all container images
   web-app/              TypeScript app (Express backend + static frontend)
   controller/           Go controller (controller-runtime)
   worker/               Go worker run by each Job (AI call + PDF + MinIO upload)
   mock-ai/              tiny mock AI report service (deterministic, no API key)
 scripts/                create-cluster.sh, build-and-load.sh, cleanup.sh, kind-config.yaml
-manifests/              shared CRD + namespace referenced by the steps
+manifests/              shared CRDs (ReportRequest, Bucket) + namespace referenced by the steps
 ```
 
 ## Prerequisites

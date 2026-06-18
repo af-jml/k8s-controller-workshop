@@ -6,6 +6,13 @@ have a single-node cluster created with **kind**, reachable via **kubectl**, and
 
 Time: ~20 minutes.
 
+## Learning objectives
+
+- Confirm the four required tools are installed and working.
+- Create and verify a local kind cluster used by the rest of the workshop.
+- Use k9s to inspect cluster resources in real time.
+- Apply a hard setup timebox so the session can stay within 90 minutes.
+
 ## 1. Install the tools
 
 You need four tools. Install whichever you don't already have.
@@ -107,6 +114,12 @@ and change in real time.
   fresh: `./scripts/cleanup.sh` then re-run.
 - **ingress-nginx wait times out** — re-run the wait:
   `kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s`
+
+## Assessment checkpoint
+
+- Can each participant run `kubectl get nodes` against the correct context?
+- Is ingress-nginx ready and visible in k9s?
+- Does each pair have at least one working terminal path for the rest of the workshop?
 
 ---
 

@@ -24,6 +24,14 @@ rules:
   - apiGroups: ["reports.workshop.io"]
     resources: ["reportrequests/status"]
     verbs: ["get", "update", "patch"]
+  # Bucket resource (step 06): the controller reconciles Buckets and manages their
+  # finalizer (needed to clean up the real MinIO bucket on deletion).
+  - apiGroups: ["storage.workshop.io"]
+    resources: ["buckets"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["storage.workshop.io"]
+    resources: ["buckets/status"]
+    verbs: ["get", "update", "patch"]
   - apiGroups: ["batch"]
     resources: ["jobs"]
     verbs: ["get", "list", "watch", "create", "delete"]
@@ -76,8 +84,20 @@ spec:
               value: minio.report-queue.svc.cluster.local:9000
             - name: MINIO_BUCKET
               value: reports
+            # Passed by *name* to the worker Job (ReportRequest flow).
             - name: MINIO_SECRET
               value: minio-credentials
+            # The Bucket controller talks to MinIO itself, so it needs the real keys.
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretkey
             # How long the worker pretends to "think", so status changes are visible.
             - name: PROCESSING_DELAY_SECONDS
               value: "5"

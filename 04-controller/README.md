@@ -3,7 +3,7 @@
 Goal: deploy the controller and watch it bring your `ReportRequest` objects to life. This is
 the payoff: the reconcile loop, Jobs spawned per request, status updates, and live UI changes.
 
-Time: ~25 minutes.
+Time: ~20 minutes.
 
 ## What the controller does
 
@@ -102,6 +102,12 @@ kubectl get jobs -n report-queue   # the owned Job is gone too
   mock-AI service not reachable.
 - **No Download link** — the request must be `Completed`. Confirm the PDF exists in MinIO
   (the worker logs print the uploaded object key).
+
+## Assessment checkpoint
+
+- Can you map one request from creation to Job completion using commands and logs?
+- Can you show evidence of controller-owned `status` updates?
+- Can you show one owner reference and explain its garbage-collection effect?
 
 ---
 

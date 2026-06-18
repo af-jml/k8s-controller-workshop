@@ -1,0 +1,113 @@
+# CustomResourceDefinition for the workshop's Bucket resource.
+#
+# This is the "local cloud" angle: a Bucket is a domain object — "I want an object-storage
+# bucket, with this access policy and this size limit". The Bucket controller (step 06)
+# provisions it for real inside MinIO. Kubernetes becomes the provisioning API, exactly the
+# way Crossplane / AWS ACK expose cloud resources as Kubernetes objects.
+#
+# Note the *different* API group from ReportRequest (storage.workshop.io vs reports.workshop.io):
+# a cluster grows new, vendor-neutral APIs as you add operators.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: buckets.storage.workshop.io
+spec:
+  group: storage.workshop.io
+  scope: Namespaced
+  names:
+    kind: Bucket
+    listKind: BucketList
+    plural: buckets
+    singular: bucket
+    shortNames:
+      - bk
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - bucketName
+              properties:
+                bucketName:
+                  type: string
+                  description: Name of the bucket to create in MinIO.
+                  # S3 bucket naming: lowercase letters, numbers, dots and hyphens, 3-63 chars.
+                  pattern: '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'
+                accessPolicy:
+                  type: string
+                  description: >-
+                    Anonymous access policy. "private" (default) removes any anonymous
+                    policy; "public-read" allows anonymous GET on objects.
+                  enum:
+                    - private
+                    - public-read
+                  default: private
+                quota:
+                  type: string
+                  description: >-
+                    Maximum total size of the bucket as a Kubernetes quantity
+                    (e.g. "100Mi", "2Gi"). Omit for no quota.
+                  pattern: '^[0-9]+(\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$'
+                deletionPolicy:
+                  type: string
+                  description: >-
+                    What to do with the real MinIO bucket when this resource is deleted.
+                    "Retain" (default) leaves it; "Delete" removes it (and its objects).
+                  enum:
+                    - Retain
+                    - Delete
+                  default: Retain
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  description: Current lifecycle phase of the bucket.
+                  enum:
+                    - Pending
+                    - Ready
+                    - Failed
+                    - Terminating
+                message:
+                  type: string
+                  description: Human-readable detail about the current phase.
+                endpoint:
+                  type: string
+                  description: In-cluster S3 endpoint and path of the provisioned bucket.
+                quotaBytes:
+                  type: integer
+                  format: int64
+                  description: The quota that was applied, in bytes.
+                appliedPolicy:
+                  type: string
+                  description: The access policy the controller last applied.
+                observedGeneration:
+                  type: integer
+                  description: The spec generation the controller last reconciled.
+                readyTime:
+                  type: string
+                  format: date-time
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Bucket
+          type: string
+          jsonPath: .spec.bucketName
+        - name: Policy
+          type: string
+          jsonPath: .spec.accessPolicy
+        - name: Quota
+          type: string
+          jsonPath: .spec.quota
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

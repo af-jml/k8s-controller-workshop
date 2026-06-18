@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	storagev1alpha1 "github.com/workshop/controller/api/storage/v1alpha1"
 	reportsv1alpha1 "github.com/workshop/controller/api/v1alpha1"
 	"github.com/workshop/controller/controllers"
 )
@@ -25,6 +26,7 @@ func init() {
 	// Register built-in types (Job, Pod, Secret, ...) and our custom types.
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = reportsv1alpha1.AddToScheme(scheme)
+	_ = storagev1alpha1.AddToScheme(scheme)
 }
 
 func main() {
@@ -52,6 +54,20 @@ func main() {
 	}
 	if err := reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ReportRequest")
+		os.Exit(1)
+	}
+
+	// The Bucket controller provisions MinIO buckets directly from its reconcile loop, so
+	// it needs real MinIO credentials (not just the Secret name the worker receives).
+	bucketReconciler := &controllers.BucketReconciler{
+		Client:         mgr.GetClient(),
+		MinioEndpoint:  controllers.EnvOrDefault("MINIO_ENDPOINT", "minio.report-queue.svc.cluster.local:9000"),
+		MinioAccessKey: controllers.EnvOrDefault("MINIO_ACCESS_KEY", "minioadmin"),
+		MinioSecretKey: controllers.EnvOrDefault("MINIO_SECRET_KEY", "minioadmin"),
+		MinioUseSSL:    controllers.EnvOrDefault("MINIO_USE_SSL", "false") == "true",
+	}
+	if err := bucketReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Bucket")
 		os.Exit(1)
 	}
 

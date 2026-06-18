@@ -5,7 +5,14 @@ create a `ReportRequest`, and observe the key lesson of the whole workshop:
 
 > A CRD on its own is just **data**. Nothing happens to it until a **controller** acts.
 
-Time: ~20 minutes.
+Time: ~15 minutes.
+
+## Learning objectives
+
+- Apply and inspect a CRD-backed custom resource type.
+- Verify that CRDs provide schema, validation, and API ergonomics by themselves.
+- Observe that no processing happens until a controller reconciles the resource.
+- Predict the exact behavior the controller should add in step 04.
 
 ## 1. Apply the CRD
 

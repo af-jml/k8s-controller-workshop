@@ -47,7 +47,7 @@ main {
 form { display: grid; gap: 1rem; }
 label { display: grid; gap: 0.35rem; font-size: 0.9rem; color: var(--muted); }
 
-input, textarea {
+input, textarea, select {
   background: #0b1220;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -155,3 +155,55 @@ a.download:hover { text-decoration: underline; }
   transition: color 0.15s, border-color 0.15s;
 }
 .add-row-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ─── Tabs ────────────────────────────────────────────────────────── */
+.tabs {
+  max-width: 1000px;
+  margin: 0.5rem auto 0;
+  padding: 0 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.6rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  justify-self: auto;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: grid; gap: 1.5rem; }
+
+/* ─── Bucket form + tags ──────────────────────────────────────────── */
+.bucket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .bucket-grid { grid-template-columns: 1fr; }
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #334155;
+  color: #cbd5e1;
+}
+.tag-public { background: #155e75; color: #cffafe; }
+
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: #cbd5e1;
+}

@@ -4,7 +4,14 @@ Goal: deploy the moving parts of the system — the **web app**, **MinIO** (obje
 and the **mock-AI** service — and open the UI in your browser. This is a tour of the
 everyday Kubernetes resources: Deployments, Services, Secrets, and Ingress.
 
-Time: ~25 minutes.
+Time: ~15 minutes.
+
+## Learning objectives
+
+- Deploy a multi-component app stack using standard Kubernetes resources.
+- Understand the role of each component in the upcoming controller workflow.
+- Observe RBAC boundaries between a user-facing app and a controller.
+- Validate that watch-based live updates are working before the controller exists.
 
 > The controller comes later (step 04). For now we're just standing up the app the
 > controller will eventually serve.
@@ -81,6 +88,14 @@ kubectl get pods -n report-queue
 ```
 
 Or watch it live in k9s (`:pods`, namespace `report-queue`).
+
+## While pods start (facilitator prompts)
+
+Use this wait time to ask:
+
+- Why can the web app create `ReportRequest` objects but not create Jobs?
+- What changes once the controller is deployed in step 04?
+- Why is the app already "live" even though report processing is not?
 
 ## 6. Open the app
 
