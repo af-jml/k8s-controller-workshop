@@ -88,18 +88,17 @@ kubectl port-forward -n report-queue deploy/minio 9001:9001
 # open http://localhost:9001 → bucket "reports" → your PDF
 ```
 
-## Failure drill: the missing bucket
+## Missing Bucket
 
-The worker depends on the `reports` bucket existing. To see the dependency fail loudly,
-imagine step 03 was skipped: a report's worker exits with
+The worker depends on the `reports` bucket existing. If this was not created (e.g. using a custom)
+you  may see the follwing error:
 
 ```
 bucket "reports" does not exist — create it first via a Bucket resource (workshop step 03):
 kubectl apply -f 03-buckets/reports-bucket.yaml
 ```
 
-and the request goes **Failed**. That's the point of provisioning the bucket explicitly: the
-dependency is visible, not hidden behind silent auto-creation.
+and the request goes **Failed**.
 
 ## Talking points
 
