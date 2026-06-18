@@ -1,5 +1,5 @@
 // Package v1alpha1 contains the Go types for the ReportRequest custom resource.
-// These mirror the CRD's OpenAPI schema in manifests/crd.yaml.
+// These mirror the CRD's OpenAPI schema in manifests/report-crd.yaml.
 package v1alpha1
 
 import (

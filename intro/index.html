@@ -19,6 +19,7 @@
       .reveal .small { font-size: 0.7em; }
       .reveal .muted { color: #9fb3c8; }
       .reveal table { font-size: 0.7em; }
+      .reveal h1 { font-size: 1.9em; line-height: 1.1; }
       .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; text-align: left; }
     </style>
   </head>
@@ -27,33 +28,43 @@
       <div class="slides">
         <!-- Title -->
         <section>
-          <h1>Kubernetes Controllers</h1>
-          <h3>From resources to operators</h3>
-          <p class="muted">A hands-on workshop · AI Report Queue</p>
+          <h1>Kubernetes: Controllers &amp; Operators</h1>
+          <h3>How Kubernetes really works — and how to extend it</h3>
+          <p class="muted">A hands-on workshop</p>
         </section>
 
-        <!-- Why -->
+        <!-- Why Kubernetes matters (generic intro) -->
         <section>
-          <h2>Why this workshop?</h2>
-          <ul>
-            <li>Almost everyone has <em>used</em> Kubernetes.</li>
-            <li>Far fewer understand <em>how it actually works</em> inside.</li>
-            <li>Custom Resource Definitions are the key that unlocks the mental model:</li>
-          </ul>
-          <blockquote class="fragment">
-            "How does a process in a pod respond to objects in the cluster?"
-          </blockquote>
-          <p class="fragment">Today we'll build exactly that — and watch it work live.</p>
-        </section>
+          <section>
+            <h2>The standard way to run software</h2>
+            <ul>
+              <li>Kubernetes runs your containers across a pool of machines — scheduling, scaling,
+                restarting and healing them automatically.</li>
+              <li>You describe the <em>desired result</em>; Kubernetes continuously works to make
+                reality match it.</li>
+              <li>It's become the de-facto standard: every major cloud offers it, and most modern
+                infrastructure is built on top of it.</li>
+            </ul>
+            <p class="fragment">Learn the model once, and it applies almost everywhere.</p>
+            <aside class="notes">
+              Keep this accessible — assume some people have barely touched Kubernetes. The one
+              sentence to land: you declare desired state, and Kubernetes keeps reality matching it.
+            </aside>
+          </section>
 
-        <section>
-          <h2>Why Kubernetes now?</h2>
-          <ul>
-            <li>Platform teams now run mixed workloads: web apps, batch pipelines, and AI jobs.</li>
-            <li>Operational complexity keeps growing: scaling, retries, policy, and compliance.</li>
-            <li>Kubernetes is the common control plane for expressing and automating that intent.</li>
-          </ul>
-          <p class="fragment">Learning controllers means learning how platforms automate decisions, not just deploy containers.</p>
+          <section>
+            <h2>One platform, every workload</h2>
+            <ul>
+              <li>Web apps, batch pipelines, databases and AI jobs all run on the <em>same</em>
+                control plane.</li>
+              <li>The hard part isn't starting a container — it's everything around it: scaling,
+                rollouts, retries, policy, compliance.</li>
+              <li>Kubernetes is where that intent gets <strong>expressed and automated</strong>,
+                instead of scripted by hand on each machine.</li>
+            </ul>
+            <p class="fragment">That makes it one of the highest-leverage things to truly
+              understand — not just use.</p>
+          </section>
         </section>
 
         <!-- Two macro forces: sovereignty + AI -->
@@ -131,7 +142,7 @@ Automation    →  control loops manage scale, retries, policy, cost</code></pre
         </section>
 
         <section>
-          <h2>Why controllers in the AI era?</h2>
+          <h2>Controllers in the AI era</h2>
           <ul>
             <li>AI workflows are long-running and stateful: queue, process, retry, publish.</li>
             <li>Controllers encode operational policy as code (who acts, when, and how).</li>
@@ -139,6 +150,20 @@ Automation    →  control loops manage scale, retries, policy, cost</code></pre
           </ul>
           <pre class="fragment"><code class="language-text">ReportRequest is a simple example of a broader pattern:
 InferenceRequest, TrainingRun, FeatureBackfill, EvaluationJob</code></pre>
+        </section>
+
+        <!-- This workshop -->
+        <section>
+          <h2>From using it to understanding it</h2>
+          <ul>
+            <li>Many people have <em>used</em> Kubernetes.</li>
+            <li>Far fewer understand <em>how it actually works</em> inside.</li>
+            <li>Custom Resource Definitions allow extending Kubernetes in the same way it already works.</li>
+          </ul>
+          <blockquote class="fragment">
+            "How does a process in a pod respond to objects in the cluster?"
+          </blockquote>
+          <p class="fragment">Today we'll build exactly that — and watch it work live.</p>
         </section>
 
         <!-- What is K8s -->
@@ -172,6 +197,95 @@ spec:
   }
 }</code></pre>
             <p class="fragment">This single idea explains <em>most</em> of Kubernetes.</p>
+          </section>
+        </section>
+
+        <!-- How a controller works -->
+        <section>
+          <section>
+            <h2>How a controller works</h2>
+            <p>A controller is a process running one endless <strong>reconcile loop</strong>:</p>
+            <ol class="small">
+              <li><strong>Watch</strong> the API for its resource type — the server streams every
+                add / update / delete event in the namespace.</li>
+              <li>On each event, read the resource's <strong>desired</strong> state (its <code>spec</code>).</li>
+              <li><strong>Observe</strong> the <strong>actual</strong> state — query the external
+                system (MinIO, a cloud API, or other Kubernetes objects).</li>
+              <li><strong>Compare.</strong> If they differ, <strong>act</strong> to close the gap
+                (create / update / delete).</li>
+              <li>Record the result in <code>status</code>, then wait for the next event.</li>
+            </ol>
+            <p class="fragment small muted">Level-triggered, not edge-triggered: it also re-checks on
+              a periodic <em>resync</em>, so a missed event — or drift in the external system — is
+              healed on the next pass.</p>
+          </section>
+
+          <section>
+            <h2>The reconcile loop</h2>
+            <svg viewBox="0 0 920 470" style="width:100%; max-height:560px" role="img"
+                 aria-label="A controller watching the API server, comparing desired versus actual state, and correcting drift in an external system.">
+              <defs>
+                <marker id="arw" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L8,3 L0,6 Z" fill="#38bdf8" />
+                </marker>
+              </defs>
+
+              <!-- repeat loop banner -->
+              <path d="M 560 150 C 520 96, 400 96, 360 150" fill="none" stroke="#38bdf8"
+                    stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arw)" />
+              <text x="460" y="84" text-anchor="middle" font-size="13" fill="#9fb3c8">
+                reconcile loop · re-runs on every event + periodic resync</text>
+
+              <!-- API server -->
+              <rect x="20" y="180" width="190" height="120" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+              <text x="115" y="212" text-anchor="middle" font-size="17" font-weight="bold" fill="#e2e8f0">API server</text>
+              <text x="115" y="238" text-anchor="middle" font-size="12.5" fill="#cbd5e1">ReportRequest · Bucket</text>
+              <text x="115" y="258" text-anchor="middle" font-size="12" fill="#9fb3c8">spec = desired state</text>
+              <text x="115" y="276" text-anchor="middle" font-size="12" fill="#9fb3c8">status &#8592; controller</text>
+
+              <!-- Controller -->
+              <rect x="350" y="150" width="220" height="190" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+              <text x="460" y="180" text-anchor="middle" font-size="17" font-weight="bold" fill="#e2e8f0">Controller</text>
+              <text x="460" y="200" text-anchor="middle" font-size="12.5" fill="#9fb3c8">reconcile()</text>
+              <rect x="375" y="222" width="170" height="96" rx="8" fill="#0b1220" stroke="#334155" stroke-width="1.5" />
+              <text x="460" y="252" text-anchor="middle" font-size="14" fill="#e2e8f0">desired &#8596; actual</text>
+              <text x="460" y="270" text-anchor="middle" font-size="11" fill="#9fb3c8">(spec)        (world)</text>
+              <line x1="392" y1="282" x2="528" y2="282" stroke="#334155" stroke-width="1" />
+              <text x="460" y="303" text-anchor="middle" font-size="13.5" fill="#38bdf8">mismatch &#8594; act</text>
+
+              <!-- External world -->
+              <rect x="710" y="180" width="190" height="120" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+              <text x="805" y="212" text-anchor="middle" font-size="17" font-weight="bold" fill="#e2e8f0">External world</text>
+              <text x="805" y="238" text-anchor="middle" font-size="12" fill="#9fb3c8">actual state</text>
+              <text x="805" y="258" text-anchor="middle" font-size="12.5" fill="#cbd5e1">MinIO · Pods · Jobs</text>
+
+              <!-- arrows: API <-> Controller -->
+              <line x1="210" y1="206" x2="346" y2="198" stroke="#38bdf8" stroke-width="2" marker-end="url(#arw)" />
+              <text x="278" y="188" text-anchor="middle" font-size="12.5" fill="#cbd5e1">&#9312; watch events</text>
+              <line x1="348" y1="300" x2="210" y2="292" stroke="#38bdf8" stroke-width="2" marker-end="url(#arw)" />
+              <text x="278" y="318" text-anchor="middle" font-size="12.5" fill="#cbd5e1">&#9315; write status</text>
+
+              <!-- arrows: Controller <-> External -->
+              <line x1="710" y1="206" x2="574" y2="198" stroke="#38bdf8" stroke-width="2" marker-end="url(#arw)" />
+              <text x="642" y="188" text-anchor="middle" font-size="12.5" fill="#cbd5e1">&#9313; observe actual</text>
+              <line x1="572" y1="300" x2="710" y2="292" stroke="#38bdf8" stroke-width="2" marker-end="url(#arw)" />
+              <text x="642" y="318" text-anchor="middle" font-size="12.5" fill="#cbd5e1">&#9314; act to correct</text>
+            </svg>
+            <p class="small muted fragment">Desired (from the resource) vs actual (from the world)
+              &#8594; correct the drift &#8594; write status &#8594; repeat.</p>
+          </section>
+
+          <section>
+            <h2>&hellip;applied to today's <code>Bucket</code></h2>
+            <table>
+              <tr><th>Reconcile step</th><th>For a <code>Bucket</code></th></tr>
+              <tr><td>desired (<code>spec</code>)</td><td>bucketName, accessPolicy, quota</td></tr>
+              <tr><td>observe actual</td><td>does the bucket exist in MinIO? which policy / quota?</td></tr>
+              <tr><td>compare &#8594; act</td><td>missing &#8594; create; wrong policy &#8594; set it; apply the quota</td></tr>
+              <tr><td>write status</td><td><code>phase: Ready</code> (or <code>Failed</code> + message)</td></tr>
+            </table>
+            <p class="small fragment">The built-in Deployment controller runs the <em>same</em> loop —
+              desired <code>replicas: 3</code> vs actual Pods — just pointed at Pods instead of MinIO.</p>
           </section>
         </section>
 
@@ -338,7 +452,7 @@ Together       →  an "Operator"</code></pre>
                 Controller updates status → UI shows it live</code></pre>
           </section>
           <section>
-            <h2>Why this design teaches well</h2>
+            <h2>What this design teaches</h2>
             <ul class="small">
               <li><strong>Two operator styles, one binary:</strong> provision <em>external</em> state (the bucket) vs create <em>Kubernetes</em> objects (Jobs).</li>
               <li><strong>Finalizers vs owner references:</strong> the bucket needs a finalizer to clean up MinIO; a Job is garbage-collected by its owner reference for free.</li>

@@ -22,7 +22,7 @@ missing. You installed the `Bucket` CRD in step 03; install the `ReportRequest` 
 controller can come up cleanly:
 
 ```bash
-kubectl apply -f manifests/crd.yaml
+kubectl apply -f manifests/report-crd.yaml
 ```
 
 > Try skipping this and you'll see the controller pod crash-loop with a "no matches for kind
