@@ -20,6 +20,15 @@
       .reveal .muted { color: #9fb3c8; }
       .reveal table { font-size: 0.7em; }
       .reveal h1 { font-size: 1.9em; line-height: 1.1; }
+      /* Tighten vertical rhythm so dense slides fit (reveal clips overflow, it doesn't shrink). */
+      .reveal h2 { font-size: 1.5em; margin-bottom: 0.5em; }
+      .reveal h3, .reveal h4 { margin-bottom: 0.4em; }
+      .reveal p { margin: 0.5em 0; }
+      .reveal ul, .reveal ol { margin: 0.4em 0; }
+      .reveal li { margin-bottom: 0.3em; line-height: 1.25; }
+      .reveal li:last-child { margin-bottom: 0; }
+      .reveal pre { margin: 0.5em 0; }
+      .reveal blockquote { margin: 0.5em auto; }
       .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; text-align: left; }
     </style>
   </head>
@@ -29,14 +38,66 @@
         <!-- Title -->
         <section>
           <h1>Kubernetes: Controllers &amp; Operators</h1>
-          <h3>How Kubernetes really works — and how to extend it</h3>
+          <h4>How Kubernetes really works — and how to extend it</h4>
           <p class="muted">A hands-on workshop</p>
+        </section>
+
+        <!-- Before Kubernetes: how things used to be done -->
+        <section>
+          <section>
+            <h2>The manual era</h2>
+            <ul class="small">
+              <li>One app per physical server — provisioning meant ordering and racking
+                hardware, measured in days or weeks.</li>
+              <li>Each box was a hand-tuned <em>pet</em>: SSH in, install dependencies, edit
+                config — leading to drift and "snowflake" servers no one dared touch.</li>
+              <li>Virtual machines packed many guests per host (better utilisation), but each
+                still ran a full OS and was configured largely by hand.</li>
+              <li>Scaling, failover and deploys were <strong>human work</strong> — a crash or a
+                traffic spike meant someone got paged.</li>
+            </ul>
+            <aside class="notes">
+              Set the scene for people who weren't there: servers were precious, named, and
+              irreplaceable; standing up a new app was a ticket-and-wait process.
+            </aside>
+          </section>
+
+          <section>
+            <h2>Containers fixed packaging</h2>
+            <ul class="small">
+              <li>Docker (2013) bundled an app with its <em>exact</em> dependencies into one
+                portable image.</li>
+              <li>"Works on my machine" finally held — from a laptop all the way to production.</li>
+              <li>Lightweight: start in seconds, run many per host, identical everywhere.</li>
+            </ul>
+            <p class="fragment">But a container is still just <strong>one process on one
+              machine</strong>.</p>
+          </section>
+
+          <section>
+            <h2>&hellip;but not operations at scale</h2>
+            <p>Run hundreds of containers across a fleet of machines and the hard questions return:</p>
+            <ul class="small">
+              <li>Which machine should each container run on?</li>
+              <li>Who restarts the ones that die — and reschedules them when a whole node fails?</li>
+              <li>How do you load-balance, roll out a new version, and roll back safely?</li>
+              <li>How do you scale with demand without scripting it all by hand?</li>
+            </ul>
+            <pre class="fragment"><code class="language-text">Bare metal  →  VMs  →  Containers  →  Kubernetes
+ manual/slow     heavy      portable      orchestrated</code></pre>
+            <p class="fragment">Automating that orchestration is exactly the job Kubernetes took on.</p>
+            <aside class="notes">
+              The arc to land: containers solved packaging; what was still missing was running
+              them reliably across many machines. That gap is why Kubernetes exists — and it
+              leads straight into the next slide.
+            </aside>
+          </section>
         </section>
 
         <!-- Why Kubernetes matters (generic intro) -->
         <section>
           <section>
-            <h2>The standard way to run software</h2>
+            <h2>The Kubernetes way to run software</h2>
             <ul>
               <li>Kubernetes runs your containers across a pool of machines — scheduling, scaling,
                 restarting and healing them automatically.</li>
@@ -57,21 +118,19 @@
             <ul>
               <li>Web apps, batch pipelines, databases and AI jobs all run on the <em>same</em>
                 control plane.</li>
-              <li>The hard part isn't starting a container — it's everything around it: scaling,
-                rollouts, retries, policy, compliance.</li>
+              <li>The hard part isn't starting a container, but everything around it: scaling,
+                rollouts, retries, etc.</li>
               <li>Kubernetes is where that intent gets <strong>expressed and automated</strong>,
                 instead of scripted by hand on each machine.</li>
             </ul>
-            <p class="fragment">That makes it one of the highest-leverage things to truly
-              understand — not just use.</p>
           </section>
         </section>
 
         <!-- Two macro forces: sovereignty + AI -->
         <section>
           <section>
-            <h2>Two shifts driving adoption</h2>
-            <p>Beyond "containers are nice", two forces are pushing Kubernetes to the centre <em>right now</em>:</p>
+            <h2>Two shifts happening right now</h2>
+            <p>Beyond scalable operations, I believe two factors will make Kubernetes even <em>more</em> popular:</p>
             <div class="two-col">
               <div>
                 <h4>🇪🇺 Sovereign clouds</h4>
@@ -92,16 +151,13 @@
           <section>
             <h2>Force 1: Digital sovereignty</h2>
             <ul class="small">
-              <li><strong>Regulation &amp; risk:</strong> GDPR, Schrems II and the US CLOUD Act make data
+              <li><strong>Regulation &amp; risk:</strong> GDPR and the US CLOUD Act make data
                 <em>location and control</em> a legal question, not just a technical one.</li>
-              <li><strong>Reducing dependency</strong> on the three US hyperscalers — see Gaia-X and
-                sovereign offers like StackIT, OVHcloud, IONOS, Open Telekom Cloud, T-Systems.</li>
+              <li><strong>Geopolitical pressure:</strong> Reducing dependency on the three US hyperscalers: AWS, Azure and GCP.</li>
               <li><strong>Kubernetes is the portability layer:</strong> the same declarative API on any
                 provider or on-prem — so you can move, repatriate, or multi-cloud <em>without a rewrite</em>.</li>
+              <li><strong>Sovereign cloud:</strong> Kubernetes can be used as the basis of building your own sovereign cloud.</li>
             </ul>
-            <blockquote class="fragment small">
-              Sovereignty isn't only "EU data centre" — it's not being <em>locked in</em> to one vendor's APIs.
-            </blockquote>
             <aside class="notes">
               The key insight: a managed proprietary cloud service ties you to that vendor's API.
               A Kubernetes workload is described in vendor-neutral YAML and runs anywhere — that
@@ -114,62 +170,21 @@
             <ul class="small">
               <li><strong>Why self-host:</strong> data privacy, cost control at scale, latency, and
                 avoiding per-token lock-in to a single model API.</li>
-              <li><strong>GPUs are first-class on K8s:</strong> the NVIDIA GPU Operator, device plugins,
-                MIG / time-slicing, and Dynamic Resource Allocation schedule scarce accelerators.</li>
-              <li><strong>An ecosystem already lives here:</strong> KServe, Kubeflow, Ray, and vLLM all
-                run <em>on</em> Kubernetes — it's becoming the default substrate for ML platforms.</li>
+              <li><strong>GPUs are first-class on K8s:</strong> the NVIDIA GPU Operator adds support for GPU scheduling and management.</li>
+              <li><strong>Scarcity:</strong> physical infrastructure is becoming more and more
+                important due to scarcity. Kubernetes is already good at optimizing scarce resource usage.</li>
             </ul>
-            <pre class="fragment"><code class="language-text">Inference, training, fine-tuning, evals, batch backfills
-  → long-running, stateful, retry-heavy, GPU-hungry
-  → exactly the workloads controllers are good at</code></pre>
             <aside class="notes">
               Note the overlap with sovereignty: many teams self-host models precisely because they
               can't send sensitive data to a third-party API. The two forces reinforce each other.
             </aside>
           </section>
-
-          <section>
-            <h2>The common thread</h2>
-            <p>Both stories converge on Kubernetes for the same two reasons:</p>
-            <pre><code class="language-text">Portability   →  vendor-neutral API; run the same thing anywhere
-Automation    →  control loops manage scale, retries, policy, cost</code></pre>
-            <p class="fragment">…and <strong>automation is exactly what controllers are</strong> — which is what we build today.</p>
-            <aside class="notes">
-              This is the hand-off into the rest of the deck: portability gets you onto Kubernetes,
-              but the value comes from automation, and automation is controllers.
-            </aside>
-          </section>
-        </section>
-
-        <section>
-          <h2>Controllers in the AI era</h2>
-          <ul>
-            <li>AI workflows are long-running and stateful: queue, process, retry, publish.</li>
-            <li>Controllers encode operational policy as code (who acts, when, and how).</li>
-            <li>CRDs let product teams expose domain APIs without leaking infrastructure details.</li>
-          </ul>
-          <pre class="fragment"><code class="language-text">ReportRequest is a simple example of a broader pattern:
-InferenceRequest, TrainingRun, FeatureBackfill, EvaluationJob</code></pre>
-        </section>
-
-        <!-- This workshop -->
-        <section>
-          <h2>From using it to understanding it</h2>
-          <ul>
-            <li>Many people have <em>used</em> Kubernetes.</li>
-            <li>Far fewer understand <em>how it actually works</em> inside.</li>
-            <li>Custom Resource Definitions allow extending Kubernetes in the same way it already works.</li>
-          </ul>
-          <blockquote class="fragment">
-            "How does a process in a pod respond to objects in the cluster?"
-          </blockquote>
-          <p class="fragment">Today we'll build exactly that — and watch it work live.</p>
         </section>
 
         <!-- What is K8s -->
         <section>
           <section>
-            <h2>What is Kubernetes, really?</h2>
+            <h2>How does Kubernetes work?</h2>
             <p>A <strong>declarative</strong> system built on <strong>control loops</strong>.</p>
             <div class="two-col">
               <div>
@@ -196,9 +211,55 @@ spec:
     act(desired, actual)       // create / update / delete
   }
 }</code></pre>
-            <p class="fragment">This single idea explains <em>most</em> of Kubernetes.</p>
+            <p class="fragment">This concept explains <em>most</em> of Kubernetes.</p>
           </section>
         </section>
+
+        <!-- Internals -->
+        <section>
+          <section>
+            <h2>What's inside the cluster?</h2>
+            <div class="two-col">
+              <div>
+                <h4>Control plane</h4>
+                <ul class="small">
+                  <li><strong>kube-apiserver</strong> — the front door; the only thing that talks to etcd</li>
+                  <li><strong>etcd</strong> — the database; all cluster state lives here</li>
+                  <li><strong>scheduler</strong> — assigns pods to nodes</li>
+                  <li><strong>controller-manager</strong> — runs the built-in control loops</li>
+                </ul>
+              </div>
+              <div>
+                <h4>On every node</h4>
+                <ul class="small">
+                  <li><strong>kubelet</strong> — starts &amp; supervises containers</li>
+                  <li><strong>kube-proxy</strong> — wires up Service networking</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+          <section>
+            <h2>The API server is the hub</h2>
+            <ul>
+              <li>Everything is a REST resource at <code>/apis/&lt;group&gt;/&lt;version&gt;/...</code></li>
+              <li>Components don't call each other — they <strong>watch the API</strong>.</li>
+              <li>A <strong>watch</strong> is a long-lived stream of add/update/delete events.</li>
+            </ul>
+            <pre class="fragment"><code class="language-text">kubectl get pods --watch
+# the same mechanism every controller uses</code></pre>
+          </section>
+          <section>
+            <h2>How a pod "responds" to a resource</h2>
+            <ol class="small">
+              <li>A process in a pod opens a <strong>watch</strong> on some resource type.</li>
+              <li>The API server streams every change to that process.</li>
+              <li>The process reacts — creating, updating, deleting other resources.</li>
+              <li>It writes results back to the API (e.g. a <code>status</code>).</li>
+            </ol>
+            <p class="fragment">This process is also called <strong>controller</strong>.</p>
+          </section>
+        </section>
+
 
         <!-- How a controller works -->
         <section>
@@ -210,19 +271,16 @@ spec:
                 add / update / delete event in the namespace.</li>
               <li>On each event, read the resource's <strong>desired</strong> state (its <code>spec</code>).</li>
               <li><strong>Observe</strong> the <strong>actual</strong> state — query the external
-                system (MinIO, a cloud API, or other Kubernetes objects).</li>
+                system (e.g. a cloud API, or other Kubernetes objects).</li>
               <li><strong>Compare.</strong> If they differ, <strong>act</strong> to close the gap
                 (create / update / delete).</li>
               <li>Record the result in <code>status</code>, then wait for the next event.</li>
             </ol>
-            <p class="fragment small muted">Level-triggered, not edge-triggered: it also re-checks on
-              a periodic <em>resync</em>, so a missed event — or drift in the external system — is
-              healed on the next pass.</p>
           </section>
 
           <section>
             <h2>The reconcile loop</h2>
-            <svg viewBox="0 0 920 470" style="width:100%; max-height:560px" role="img"
+            <svg viewBox="0 0 920 470" style="width:100%; max-height:500px" role="img"
                  aria-label="A controller watching the API server, comparing desired versus actual state, and correcting drift in an external system.">
               <defs>
                 <marker id="arw" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -234,12 +292,12 @@ spec:
               <path d="M 560 150 C 520 96, 400 96, 360 150" fill="none" stroke="#38bdf8"
                     stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arw)" />
               <text x="460" y="84" text-anchor="middle" font-size="13" fill="#9fb3c8">
-                reconcile loop · re-runs on every event + periodic resync</text>
+                re-runs on every event + periodic resync</text>
 
               <!-- API server -->
               <rect x="20" y="180" width="190" height="120" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
               <text x="115" y="212" text-anchor="middle" font-size="17" font-weight="bold" fill="#e2e8f0">API server</text>
-              <text x="115" y="238" text-anchor="middle" font-size="12.5" fill="#cbd5e1">ReportRequest · Bucket</text>
+              <text x="115" y="238" text-anchor="middle" font-size="12.5" fill="#cbd5e1">Deployment</text>
               <text x="115" y="258" text-anchor="middle" font-size="12" fill="#9fb3c8">spec = desired state</text>
               <text x="115" y="276" text-anchor="middle" font-size="12" fill="#9fb3c8">status &#8592; controller</text>
 
@@ -257,7 +315,7 @@ spec:
               <rect x="710" y="180" width="190" height="120" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
               <text x="805" y="212" text-anchor="middle" font-size="17" font-weight="bold" fill="#e2e8f0">External world</text>
               <text x="805" y="238" text-anchor="middle" font-size="12" fill="#9fb3c8">actual state</text>
-              <text x="805" y="258" text-anchor="middle" font-size="12.5" fill="#cbd5e1">MinIO · Pods · Jobs</text>
+              <text x="805" y="258" text-anchor="middle" font-size="12.5" fill="#cbd5e1">ReplicaSets, Pods, Jobs</text>
 
               <!-- arrows: API <-> Controller -->
               <line x1="210" y1="206" x2="346" y2="198" stroke="#38bdf8" stroke-width="2" marker-end="url(#arw)" />
@@ -273,19 +331,6 @@ spec:
             </svg>
             <p class="small muted fragment">Desired (from the resource) vs actual (from the world)
               &#8594; correct the drift &#8594; write status &#8594; repeat.</p>
-          </section>
-
-          <section>
-            <h2>&hellip;applied to today's <code>Bucket</code></h2>
-            <table>
-              <tr><th>Reconcile step</th><th>For a <code>Bucket</code></th></tr>
-              <tr><td>desired (<code>spec</code>)</td><td>bucketName, accessPolicy, quota</td></tr>
-              <tr><td>observe actual</td><td>does the bucket exist in MinIO? which policy / quota?</td></tr>
-              <tr><td>compare &#8594; act</td><td>missing &#8594; create; wrong policy &#8594; set it; apply the quota</td></tr>
-              <tr><td>write status</td><td><code>phase: Ready</code> (or <code>Failed</code> + message)</td></tr>
-            </table>
-            <p class="small fragment">The built-in Deployment controller runs the <em>same</em> loop —
-              desired <code>replicas: 3</code> vs actual Pods — just pointed at Pods instead of MinIO.</p>
           </section>
         </section>
 
@@ -318,51 +363,6 @@ Ingress  ──routes-to──▶  Service</code></pre>
           </section>
         </section>
 
-        <!-- Optional appendix: internals -->
-        <section>
-          <section>
-            <h2>Appendix: what's inside the cluster?</h2>
-            <div class="two-col">
-              <div>
-                <h4>Control plane</h4>
-                <ul class="small">
-                  <li><strong>kube-apiserver</strong> — the front door; the only thing that talks to etcd</li>
-                  <li><strong>etcd</strong> — the database; all cluster state lives here</li>
-                  <li><strong>scheduler</strong> — assigns pods to nodes</li>
-                  <li><strong>controller-manager</strong> — runs the built-in control loops</li>
-                </ul>
-              </div>
-              <div>
-                <h4>On every node</h4>
-                <ul class="small">
-                  <li><strong>kubelet</strong> — starts &amp; supervises containers</li>
-                  <li><strong>kube-proxy</strong> — wires up Service networking</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-          <section>
-            <h2>Appendix: the API server is the hub</h2>
-            <ul>
-              <li>Everything is a REST resource at <code>/apis/&lt;group&gt;/&lt;version&gt;/...</code></li>
-              <li>Components don't call each other — they <strong>watch the API</strong>.</li>
-              <li>A <strong>watch</strong> is a long-lived stream of add/update/delete events.</li>
-            </ul>
-            <pre class="fragment"><code class="language-text">kubectl get pods --watch
-# the same mechanism every controller uses</code></pre>
-          </section>
-          <section>
-            <h2>Appendix: how a pod "responds" to a resource</h2>
-            <ol class="small">
-              <li>A process in a pod opens a <strong>watch</strong> on some resource type.</li>
-              <li>The API server streams every change to that process.</li>
-              <li>The process reacts — creating, updating, deleting other resources.</li>
-              <li>It writes results back to the API (e.g. a <code>status</code>).</li>
-            </ol>
-            <p class="fragment">That process is a <strong>controller</strong>. That's the whole trick.</p>
-          </section>
-        </section>
-
         <!-- CRDs -->
         <section>
           <section>
@@ -372,20 +372,19 @@ Ingress  ──routes-to──▶  Service</code></pre>
             <pre><code class="language-yaml">apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: reportrequests.reports.workshop.io
+  name: buckets.storage.workshop.io
 spec:
-  group: reports.workshop.io
-  names: { kind: ReportRequest, plural: reportrequests }
+  group: storage.workshop.io
+  names: { kind: Bucket, plural: buckets }
   scope: Namespaced
   versions: [ ... schema ... ]</code></pre>
           </section>
           <section>
             <h2>A CRD alone does nothing</h2>
             <p>After applying a CRD you can do this…</p>
-            <pre><code class="language-bash">kubectl apply -f my-reportrequest.yaml
-kubectl get reportrequests</code></pre>
-            <p class="fragment">…but the object just <em>sits there</em>. It's only data.</p>
-            <p class="fragment"><strong>You will feel this in step 03.</strong></p>
+            <pre><code class="language-bash">kubectl apply -f my-bucket.yaml
+kubectl get buckets</code></pre>
+            <p class="fragment">…but the object just <em>sits there</em>. Right now it's <em>only data</em>.</p>
           </section>
           <section>
             <h2>The operator / controller pattern</h2>
@@ -398,11 +397,11 @@ Together       →  an "Operator"</code></pre>
           <section>
             <h2>Real-world use cases</h2>
             <ul class="small">
-              <li>Databases that provision &amp; back themselves up (CloudNativePG, Zalando Postgres)</li>
-              <li>Certificate management (cert-manager: <code>Certificate</code> CRDs)</li>
-              <li>GitOps (Argo CD: <code>Application</code> CRDs)</li>
-              <li>Cloud resources from inside the cluster (Crossplane) — like today's <code>Bucket</code></li>
-              <li>Your own domain objects — like today's <code>ReportRequest</code>.</li>
+              <li>Databases that provision &amp; back themselves up</li>
+              <li>Certificate management</li>
+              <li>GitOps inside the cluster</li>
+              <li><em>Provision cloud resources from inside the cluster</em></li>
+              <li><em>Your own domain objects</em></li>
             </ul>
           </section>
         </section>
@@ -485,6 +484,12 @@ Together       →  an "Operator"</code></pre>
       Reveal.initialize({
         hash: true,
         slideNumber: 'c/t',
+        // Taller virtual slide + scaling headroom so dense slides aren't clipped at the bottom.
+        width: 960,
+        height: 800,
+        margin: 0.035,
+        minScale: 0.2,
+        maxScale: 1.6,
         plugins: [RevealHighlight, RevealNotes],
       });
     </script>
