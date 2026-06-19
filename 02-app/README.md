@@ -19,7 +19,7 @@ Time: ~15 minutes.
 ## 0. Make the images available
 
 The manifests reference images like `ghcr.io/appsfactory/k8s-controller-workshop/web-app:latest`
-with `imagePullPolicy: IfNotPresent`. Choose one path:
+with `imagePullPolicy: IfNotPresent`. To make it easier, we will:
 
 - **Build & load locally (offline-friendly):**
 
@@ -30,13 +30,9 @@ with `imagePullPolicy: IfNotPresent`. Choose one path:
   This builds every image and loads it straight into the kind node, so Kubernetes finds it
   without pulling from a registry.
 
-- **Use prebuilt images from a registry:** set `IMAGE_PREFIX` in
-  [`scripts/env.sh`](../scripts/env.sh) to your published images and make sure the manifests
-  reference the same names. (The defaults are placeholders.)
-
 ## 1. Create the namespace
 
-Everything lives in the `report-queue` namespace.
+Everything lives in the `workshop` namespace.
 
 ```bash
 kubectl apply -f manifests/namespace.yaml
@@ -83,15 +79,13 @@ This file contains the most to discuss:
 ## 5. Wait for everything to be ready
 
 ```bash
-kubectl get pods -n report-queue
+kubectl get pods -n workshop
 # all should reach Running / READY 1/1
 ```
 
-Or watch it live in k9s (`:pods`, namespace `report-queue`).
+Or watch it live in k9s (`:pods`, namespace `workshop`).
 
-## While pods start (facilitator prompts)
-
-Use this wait time to ask:
+## While pods start
 
 - Why can the web app create `ReportRequest` objects but not create Jobs?
 - What changes once the controller is deployed in step 04?
@@ -113,11 +107,11 @@ Server-Sent-Events stream backed by a Kubernetes *watch*.
 ## Troubleshooting
 
 - **Pod stuck in `ImagePullBackOff`** — the image isn't in the cluster. Run
-  `./scripts/build-and-load.sh`, then `kubectl rollout restart deploy -n report-queue <name>`.
+  `./scripts/build-and-load.sh`, then `kubectl rollout restart deploy -n workshop <name>`.
 - **`http://localhost:8080` doesn't load** — confirm ingress-nginx is ready
   (`kubectl get pods -n ingress-nginx`) and that you created the cluster with
   `scripts/create-cluster.sh` (which sets up the port mapping).
-- **MinIO not ready** — give it a few seconds; check `kubectl logs -n report-queue deploy/minio`.
+- **MinIO not ready** — give it a few seconds; check `kubectl logs -n workshop deploy/minio`.
 
 ---
 

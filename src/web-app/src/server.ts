@@ -24,10 +24,10 @@ const BUCKET_GROUP = 'storage.workshop.io';
 const BUCKET_VERSION = 'v1alpha1';
 const BUCKET_PLURAL = 'buckets';
 
-const NAMESPACE = process.env.NAMESPACE || 'report-queue';
+const NAMESPACE = process.env.NAMESPACE || 'workshop';
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
-const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'minio.report-queue.svc.cluster.local';
+const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'minio.workshop.svc.cluster.local';
 const MINIO_PORT = parseInt(process.env.MINIO_PORT || '9000', 10);
 const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minioadmin';
 const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin';

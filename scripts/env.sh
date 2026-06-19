@@ -2,10 +2,10 @@
 # Source this file or rely on the scripts sourcing it.
 
 # Cluster name used by kind and kubectl context (kind-<name>).
-export CLUSTER_NAME="${CLUSTER_NAME:-report-queue}"
+export CLUSTER_NAME="${CLUSTER_NAME:-workshop}"
 
 # Kubernetes namespace everything is deployed into.
-export NAMESPACE="${NAMESPACE:-report-queue}"
+export NAMESPACE="${NAMESPACE:-workshop}"
 
 # Registry/prefix for prebuilt images. Override to use your own published images.
 # Images are referenced as ${IMAGE_PREFIX}/<name>:${IMAGE_TAG}

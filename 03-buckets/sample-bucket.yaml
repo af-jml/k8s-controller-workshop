@@ -6,7 +6,7 @@
 # Before the controller is running (step 04) these just sit there with no status — a CRD is
 # only data. Once the controller reconciles them, the real buckets appear in MinIO with the
 # requested access policy and quota. Watch them with:
-#   kubectl get buckets -n report-queue -w
+#   kubectl get buckets -n workshop -w
 #   # or in k9s: :buckets
 #
 # Note: analytics-exports uses deletionPolicy: Delete (finalizer removes the real bucket on
@@ -16,7 +16,7 @@ apiVersion: storage.workshop.io/v1alpha1
 kind: Bucket
 metadata:
   name: analytics-exports
-  namespace: report-queue
+  namespace: workshop
 spec:
   bucketName: analytics-exports
   accessPolicy: private
@@ -29,7 +29,7 @@ apiVersion: storage.workshop.io/v1alpha1
 kind: Bucket
 metadata:
   name: public-assets
-  namespace: report-queue
+  namespace: workshop
 spec:
   bucketName: public-assets
   accessPolicy: public-read

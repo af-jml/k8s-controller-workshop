@@ -46,8 +46,8 @@ func main() {
 	reconciler := &controllers.ReportRequestReconciler{
 		Client:         mgr.GetClient(),
 		WorkerImage:    controllers.EnvOrDefault("WORKER_IMAGE", "ghcr.io/appsfactory/k8s-controller-workshop/worker:latest"),
-		MockAIURL:      controllers.EnvOrDefault("MOCK_AI_URL", "http://mock-ai.report-queue.svc.cluster.local:8080"),
-		MinioEndpoint:  controllers.EnvOrDefault("MINIO_ENDPOINT", "minio.report-queue.svc.cluster.local:9000"),
+		MockAIURL:      controllers.EnvOrDefault("MOCK_AI_URL", "http://mock-ai.workshop.svc.cluster.local:8080"),
+		MinioEndpoint:  controllers.EnvOrDefault("MINIO_ENDPOINT", "minio.workshop.svc.cluster.local:9000"),
 		MinioBucket:    controllers.EnvOrDefault("MINIO_BUCKET", "reports"),
 		MinioSecret:    controllers.EnvOrDefault("MINIO_SECRET", "minio-credentials"),
 		ProcessingSecs: controllers.EnvOrDefault("PROCESSING_DELAY_SECONDS", "5"),
@@ -61,7 +61,7 @@ func main() {
 	// it needs real MinIO credentials (not just the Secret name the worker receives).
 	bucketReconciler := &controllers.BucketReconciler{
 		Client:         mgr.GetClient(),
-		MinioEndpoint:  controllers.EnvOrDefault("MINIO_ENDPOINT", "minio.report-queue.svc.cluster.local:9000"),
+		MinioEndpoint:  controllers.EnvOrDefault("MINIO_ENDPOINT", "minio.workshop.svc.cluster.local:9000"),
 		MinioAccessKey: controllers.EnvOrDefault("MINIO_ACCESS_KEY", "minioadmin"),
 		MinioSecretKey: controllers.EnvOrDefault("MINIO_SECRET_KEY", "minioadmin"),
 		MinioUseSSL:    controllers.EnvOrDefault("MINIO_USE_SSL", "false") == "true",

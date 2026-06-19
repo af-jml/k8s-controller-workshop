@@ -27,7 +27,7 @@ failure drill at the bottom to see what happens otherwise).
 
 ```bash
 kubectl apply -f 05-reports/sample-reportrequest.yaml
-kubectl get reportrequests -n report-queue
+kubectl get reportrequests -n workshop
 ```
 
 You'll see your object listed with custom columns (Phase, Title, Job, Age) defined by the CRD.
@@ -40,14 +40,14 @@ appears instantly (the app is *watching* ReportRequests).
 ## 2. Watch it reconcile
 
 ```bash
-kubectl get reportrequests -n report-queue -w
+kubectl get reportrequests -n workshop -w
 ```
 
 The phase moves (empty) → **Processing** → **Completed** within a few seconds. In parallel,
 watch the worker Job appear and finish:
 
 ```bash
-kubectl get jobs,pods -n report-queue -w
+kubectl get jobs,pods -n workshop -w
 ```
 
 Or — much nicer — watch it all in **k9s**: `:reportrequests`, `:jobs`, `:pods`. You'll
@@ -65,9 +65,9 @@ Each Job is *owned* by its ReportRequest, so deleting the request cleans up its 
 automatically:
 
 ```bash
-kubectl get job -n report-queue -o yaml | grep -A6 ownerReferences
-kubectl delete reportrequest <name> -n report-queue
-kubectl get jobs -n report-queue   # the owned Job is gone too
+kubectl get job -n workshop -o yaml | grep -A6 ownerReferences
+kubectl delete reportrequest <name> -n workshop
+kubectl get jobs -n workshop   # the owned Job is gone too
 ```
 
 > Contrast with the Bucket from step 04: a Job is a Kubernetes object, so owner references
@@ -78,13 +78,13 @@ kubectl get jobs -n report-queue   # the owned Job is gone too
 
 ```bash
 # Controller logs — see the reconcile decisions
-kubectl logs -n report-queue deploy/report-controller -f
+kubectl logs -n workshop deploy/report-controller -f
 
 # A finished request's full object, including controller-owned status
-kubectl get reportrequest <name> -n report-queue -o yaml
+kubectl get reportrequest <name> -n workshop -o yaml
 
 # The PDF object now living in the reports bucket
-kubectl port-forward -n report-queue deploy/minio 9001:9001
+kubectl port-forward -n workshop deploy/minio 9001:9001
 # open http://localhost:9001 → bucket "reports" → your PDF
 ```
 

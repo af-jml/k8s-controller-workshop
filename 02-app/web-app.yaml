@@ -8,13 +8,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: web-app
-  namespace: report-queue
+  namespace: workshop
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: web-app
-  namespace: report-queue
+  namespace: workshop
 rules:
   - apiGroups: ["reports.workshop.io"]
     resources: ["reportrequests"]
@@ -29,11 +29,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: web-app
-  namespace: report-queue
+  namespace: workshop
 subjects:
   - kind: ServiceAccount
     name: web-app
-    namespace: report-queue
+    namespace: workshop
 roleRef:
   kind: Role
   name: web-app
@@ -43,7 +43,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web-app
-  namespace: report-queue
+  namespace: workshop
   labels:
     app: web-app
 spec:
@@ -65,9 +65,9 @@ spec:
             - containerPort: 8080
           env:
             - name: NAMESPACE
-              value: report-queue
+              value: workshop
             - name: MINIO_ENDPOINT
-              value: minio.report-queue.svc.cluster.local
+              value: minio.workshop.svc.cluster.local
             - name: MINIO_PORT
               value: "9000"
             - name: MINIO_BUCKET
@@ -97,7 +97,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: web-app
-  namespace: report-queue
+  namespace: workshop
   labels:
     app: web-app
 spec:
@@ -111,7 +111,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: web-app
-  namespace: report-queue
+  namespace: workshop
   annotations:
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"

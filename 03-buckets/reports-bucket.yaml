@@ -10,7 +10,7 @@ apiVersion: storage.workshop.io/v1alpha1
 kind: Bucket
 metadata:
   name: reports
-  namespace: report-queue
+  namespace: workshop
 spec:
   # Must be "reports": it matches MINIO_BUCKET on the controller/worker/web-app.
   bucketName: reports

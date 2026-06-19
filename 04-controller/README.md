@@ -50,21 +50,21 @@ The moment the controller starts, it reconciles the `reports` Bucket that was si
 since step 03. Watch the phase flip:
 
 ```bash
-kubectl get buckets -n report-queue -w
+kubectl get buckets -n workshop -w
 # reports … Phase: (empty) → Ready  within a second or two
 ```
 
 Now confirm the **real bucket exists** in MinIO (it didn't in step 03):
 
 ```bash
-kubectl port-forward -n report-queue deploy/minio 9001:9001
+kubectl port-forward -n workshop deploy/minio 9001:9001
 # open http://localhost:9001 (minioadmin / minioadmin) → the `reports` bucket is now there
 ```
 
 Inspect the controller-owned status and the endpoint it recorded:
 
 ```bash
-kubectl get bucket reports -n report-queue -o jsonpath='{.status}' | jq
+kubectl get bucket reports -n workshop -o jsonpath='{.status}' | jq
 ```
 
 ## 4. See the finalizer (external cleanup)
@@ -75,7 +75,7 @@ sample buckets and compare their deletion policies:
 
 ```bash
 kubectl apply -f 03-buckets/sample-bucket.yaml
-kubectl get bucket analytics-exports -n report-queue \
+kubectl get bucket analytics-exports -n workshop \
   -o jsonpath='{.metadata.finalizers}'   # => ["storage.workshop.io/finalizer"]
 ```
 
@@ -85,7 +85,7 @@ kubectl get bucket analytics-exports -n report-queue \
   bucket stays.
 
 ```bash
-kubectl delete bucket analytics-exports public-assets -n report-queue
+kubectl delete bucket analytics-exports public-assets -n workshop
 # watch the MinIO console: analytics-exports disappears, public-assets remains
 ```
 
@@ -107,7 +107,7 @@ kubectl delete bucket analytics-exports public-assets -n report-queue
   `kubectl get crd buckets.storage.workshop.io` and `…reportrequests.reports.workshop.io`
   exist (steps 03 and step 1 above).
 - **Bucket stuck with no/empty phase** — check the controller logs
-  (`kubectl logs -n report-queue deploy/report-controller -f`). RBAC errors point to the
+  (`kubectl logs -n workshop deploy/report-controller -f`). RBAC errors point to the
   ClusterRole; connection errors point to `MINIO_ENDPOINT/MINIO_ACCESS_KEY/MINIO_SECRET_KEY`.
 - **Bucket `Failed`** — read `.status.message`. Usually MinIO isn't ready yet; it will
   reconcile again shortly.

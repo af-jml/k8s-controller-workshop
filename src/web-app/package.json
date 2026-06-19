@@ -1,5 +1,5 @@
 {
-  "name": "report-queue-web-app",
+  "name": "workshop-web-app",
   "version": "1.0.0",
   "private": true,
   "description": "Web UI for the Kubernetes Controllers Workshop — create ReportRequest CRs and watch them live.",

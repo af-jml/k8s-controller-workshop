@@ -45,7 +45,7 @@ server uses to **validate** objects you submit.
 
 ```bash
 kubectl apply -f 03-buckets/reports-bucket.yaml
-kubectl get buckets -n report-queue
+kubectl get buckets -n workshop
 ```
 
 You'll see your object listed with custom columns (Bucket, Policy, Quota, Phase, Age) defined
@@ -57,7 +57,7 @@ and watch them live — the app is *watching* `Bucket` objects, just like it wat
 ## 3. Observe: nothing is provisioning it
 
 ```bash
-kubectl get bucket reports -n report-queue -o yaml | less
+kubectl get bucket reports -n workshop -o yaml | less
 ```
 
 The object has your `spec`, but no meaningful `status`. And crucially — **there is no real
@@ -65,7 +65,7 @@ bucket in MinIO yet**. Check the MinIO console to prove it:
 
 ```bash
 # Port-forward the MinIO console, then open http://localhost:9001 (minioadmin / minioadmin)
-kubectl port-forward -n report-queue deploy/minio 9001:9001
+kubectl port-forward -n workshop deploy/minio 9001:9001
 ```
 
 No `reports` bucket. This is the whole point: the API happily stores and validates `Bucket`

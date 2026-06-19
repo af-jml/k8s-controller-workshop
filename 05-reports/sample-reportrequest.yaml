@@ -8,7 +8,7 @@ apiVersion: reports.workshop.io/v1alpha1
 kind: ReportRequest
 metadata:
   name: q2-revenue-analysis
-  namespace: report-queue
+  namespace: workshop
 spec:
   title: Q2 Revenue Analysis
   dataset: |

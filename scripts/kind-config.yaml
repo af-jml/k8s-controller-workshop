@@ -3,7 +3,7 @@
 # (served via ingress-nginx) is reachable at http://localhost:8080.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: report-queue
+name: workshop
 nodes:
   - role: control-plane
     kubeadmConfigPatches:

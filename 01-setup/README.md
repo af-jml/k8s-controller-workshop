@@ -73,10 +73,10 @@ From the **repository root**:
 
 This script:
 
-1. Creates a kind cluster named `report-queue` using [`scripts/kind-config.yaml`](../scripts/kind-config.yaml).
+1. Creates a kind cluster named `workshop` using [`scripts/kind-config.yaml`](../scripts/kind-config.yaml).
    The config maps the cluster's ingress ports to `localhost:8080` so you can open the app
    in your browser later.
-2. Sets your `kubectl` context to `kind-report-queue` (this updates your kubeconfig).
+2. Sets your `kubectl` context to `kind-workshop` (this updates your kubeconfig).
 3. Installs **ingress-nginx** and waits for it to be ready.
 
 > Creating the cluster automatically adds it to your kubeconfig (`~/.kube/config`) and
@@ -87,7 +87,7 @@ This script:
 ```bash
 kubectl get nodes
 # NAME                          STATUS   ROLES           AGE   VERSION
-# report-queue-control-plane    Ready    control-plane   1m    v1.xx.x
+# workshop-control-plane    Ready    control-plane   1m    v1.xx.x
 
 kubectl get pods -A
 ```
