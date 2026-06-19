@@ -13,7 +13,7 @@ renders a PDF financial report, and stores it in MinIO. The UI shows the status 
 > desired state you declared with the actual state of the world. You'll feel this directly
 > in step `03` (nothing happens) versus step `04` (the controller brings the CR to life).
 
-## Agenda (~100 minutes)
+## Agenda
 
 | Part | Folder | Time | What happens |
 | ---- | ------ | ---- | ------------ |
