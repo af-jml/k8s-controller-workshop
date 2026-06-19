@@ -409,7 +409,7 @@ Together       →  an "Operator"</code></pre>
         <!-- Scenario -->
         <section>
           <section>
-            <h2>Today's scenario: AI Report Queue</h2>
+            <h2>Today's scenarios: S3 Clone + Report Generation</h2>
             <p>Users request a financial report. A controller turns each request into a real
               PDF — and the UI shows it happen live.</p>
             <p class="fragment">But first the PDFs need somewhere to live. So we build
@@ -436,11 +436,10 @@ Together       →  an "Operator"</code></pre>
                  ▼
           Real bucket exists → status: Ready
           (delete → a finalizer cleans the bucket up)</code></pre>
-            <p class="small muted fragment">This is the Crossplane / cloud-operator pattern, in miniature.</p>
           </section>
           <section>
             <h2>Step 2 — fill it with reports</h2>
-            <p>With the bucket in place, each request becomes a Job that writes a PDF into it.</p>
+            <p>With the bucket in place, report requests should start a Job that writes a PDF into it.</p>
             <pre><code class="language-text">User → Web UI → creates ReportRequest (CRD)
                        │
                 Controller sees it
@@ -453,10 +452,10 @@ Together       →  an "Operator"</code></pre>
           <section>
             <h2>What this design teaches</h2>
             <ul class="small">
-              <li><strong>Two operator styles, one binary:</strong> provision <em>external</em> state (the bucket) vs create <em>Kubernetes</em> objects (Jobs).</li>
+              <li>Provision <em>external</em> state (the bucket) vs create <em>Kubernetes</em> objects (Jobs).</li>
               <li><strong>Finalizers vs owner references:</strong> the bucket needs a finalizer to clean up MinIO; a Job is garbage-collected by its owner reference for free.</li>
               <li>The <strong>status subresource</strong> shows desired-vs-actual for both resources.</li>
-              <li>A few seconds of "work" make <code>Pending → Processing → Completed</code> visible.</li>
+              <li>A few seconds of "work" make status changes visible.</li>
             </ul>
           </section>
         </section>
@@ -465,12 +464,12 @@ Together       →  an "Operator"</code></pre>
         <section>
           <h2>Agenda</h2>
           <table>
-            <tr><td>01</td><td>Setup (20 min) — kind, kubectl, k9s, local cluster</td></tr>
-            <tr><td>02</td><td>Deploy app (15 min) — web UI, MinIO, mock-AI</td></tr>
-            <tr><td>03</td><td>Buckets (10 min) — first CRD: provision a bucket, inert-data insight</td></tr>
-            <tr><td>04</td><td>Controller (15 min) — reconcile; the bucket becomes real; finalizers</td></tr>
-            <tr><td>05</td><td>Reports (20 min) — ReportRequest pipeline → PDF in the bucket</td></tr>
-            <tr><td>06</td><td>Wrap-up (10 min) — recap + extension challenges</td></tr>
+            <tr><td>01</td><td>Setup — kind, kubectl, k9s, local cluster</td></tr>
+            <tr><td>02</td><td>Deploy app — web UI, MinIO, mock-AI</td></tr>
+            <tr><td>03</td><td>Buckets — provision a S3 bucket using CRDs</td></tr>
+            <tr><td>04</td><td>Controller — makes the bucket real, finalizers</td></tr>
+            <tr><td>05</td><td>Reports — ReportRequest → PDF in the bucket</td></tr>
+            <tr><td>06</td><td>Wrap-up — recap + extension challenges</td></tr>
           </table>
           <p class="fragment">Let's build it. → open <code>01-setup/</code></p>
         </section>
