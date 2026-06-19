@@ -106,7 +106,6 @@
               <li>It's become the de-facto standard: every major cloud offers it, and most modern
                 infrastructure is built on top of it.</li>
             </ul>
-            <p class="fragment">Learn the model once, and it applies almost everywhere.</p>
             <aside class="notes">
               Keep this accessible — assume some people have barely touched Kubernetes. The one
               sentence to land: you declare desired state, and Kubernetes keeps reality matching it.
@@ -141,7 +140,7 @@
                 <p class="small muted">Where do you run GPUs, models, and long batch jobs?</p>
               </div>
             </div>
-            <p class="fragment">Both end up needing the same thing: a <strong>portable, automatable control plane</strong>.</p>
+            <p class="fragment">Both end up needing a <strong>portable, automatable control plane</strong>.</p>
             <aside class="notes">
               These are the two conversations clients are actually having in 2025/26. Kubernetes
               is the common denominator under both — that's why it's worth understanding deeply.
@@ -155,7 +154,7 @@
                 <em>location and control</em> a legal question, not just a technical one.</li>
               <li><strong>Geopolitical pressure:</strong> Reducing dependency on the three US hyperscalers: AWS, Azure and GCP.</li>
               <li><strong>Kubernetes is the portability layer:</strong> the same declarative API on any
-                provider or on-prem — so you can move, repatriate, or multi-cloud <em>without a rewrite</em>.</li>
+                provider or on-prem — so you can move, or use multi-cloud <em>without a rewrite</em>.</li>
               <li><strong>Sovereign cloud:</strong> Kubernetes can be used as the basis of building your own sovereign cloud.</li>
             </ul>
             <aside class="notes">
@@ -450,7 +449,7 @@ Together       →  an "Operator"</code></pre>
                 Controller updates status → UI shows it live</code></pre>
           </section>
           <section>
-            <h2>What this design teaches</h2>
+            <h2>What is the outcome?</h2>
             <ul class="small">
               <li>Provision <em>external</em> state (the bucket) vs create <em>Kubernetes</em> objects (Jobs).</li>
               <li><strong>Finalizers vs owner references:</strong> the bucket needs a finalizer to clean up MinIO; a Job is garbage-collected by its owner reference for free.</li>
