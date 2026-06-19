@@ -179,7 +179,37 @@ a.download:hover { text-decoration: underline; }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+.tab-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.45rem;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.tab-btn.active .tab-step { background: var(--accent); color: #00121f; }
+
 .tab-panel { display: grid; gap: 1.5rem; }
+/* Without this, `.tab-panel`'s display:grid overrides the [hidden] attribute, so the JS
+   tab-switch (which toggles `hidden`) wouldn't actually hide the inactive panel. */
+.tab-panel[hidden] { display: none; }
+
+/* CRD name pill shown in a tab's card header */
+.step-pill {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
 
 /* ─── Bucket form + tags ──────────────────────────────────────────── */
 .bucket-grid {

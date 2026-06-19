@@ -101,9 +101,10 @@ Use this wait time to ask:
 
 Open <http://localhost:8080> in your browser.
 
-You should see the **AI Report Queue** UI. It has two tabs — **Reports** and **Buckets** —
-both backed by Kubernetes custom resources. The "connecting…" badge should switch to **live**:
-that's the browser holding an open Server-Sent-Events stream backed by a Kubernetes *watch*.
+You should see the **Operator Console** UI. It has two tabs — **1 · Buckets** and
+**2 · Reports** (in that order) — each backed by its own Kubernetes custom resource. The
+"connecting…" badge should switch to **live**: that's the browser holding an open
+Server-Sent-Events stream backed by a Kubernetes *watch*.
 
 > Nothing will actually process yet — there's no controller running. That's the whole point of
 > the next steps. First we'll create our very first custom resource — the storage **bucket**

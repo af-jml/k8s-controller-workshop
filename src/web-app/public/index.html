@@ -3,78 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Report Queue</title>
+    <title>Kubernetes Operator Console</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header>
-      <h1>AI Report Queue</h1>
+      <h1>Kubernetes Operator Console</h1>
       <p class="subtitle">
-        Create a report request. A Kubernetes controller will pick it up, run a worker
-        Job, and produce a PDF. Watch the status change live.
+        One controller, two custom resources. <strong>First</strong> provision a storage
+        bucket, <strong>then</strong> generate reports into it — and watch Kubernetes
+        reconcile each one live.
       </p>
     </header>
 
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="reports">Reports</button>
-      <button class="tab-btn" data-tab="buckets">Buckets</button>
+      <button class="tab-btn active" data-tab="buckets"><span class="tab-step">1</span>Buckets</button>
+      <button class="tab-btn" data-tab="reports"><span class="tab-step">2</span>Reports</button>
     </nav>
 
     <main>
-      <div id="tab-reports" class="tab-panel">
-      <section class="card">
-        <h2>New report request</h2>
-        <form id="report-form">
-          <label>
-            Title
-            <input name="title" required placeholder="Q2 Revenue Analysis" />
-          </label>
-          <div class="field-group">
-            <div class="field-header">
-              <span class="field-label">Financial data</span>
-              <div class="presets">
-                <button type="button" class="preset-btn" data-preset="pl">P&amp;L</button>
-                <button type="button" class="preset-btn" data-preset="cashflow">Cash Flow</button>
-                <button type="button" class="preset-btn" data-preset="budget">Budget</button>
-              </div>
-            </div>
-            <div id="dataset-editor" class="dataset-editor"></div>
-            <button type="button" id="add-row-btn" class="add-row-btn">+ Add row</button>
-            <input type="hidden" name="dataset" id="dataset-hidden" />
-          </div>
-          <label>
-            Instructions (optional)
-            <input name="instructions" placeholder="Focus on cost reduction opportunities" />
-          </label>
-          <button type="submit" id="submit-btn">Create report</button>
-        </form>
-      </section>
-
+      <!-- Tab 1 · Buckets — provision storage first -->
+      <div id="tab-buckets" class="tab-panel">
       <section class="card">
         <div class="card-header">
-          <h2>Requests</h2>
-          <span id="connection" class="badge badge-pending">connecting…</span>
+          <h2>Step 1 · Provision a bucket</h2>
+          <span class="step-pill">storage.workshop.io/Bucket</span>
         </div>
-        <table id="reports-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Job</th>
-              <th>Message</th>
-              <th>PDF</th>
-            </tr>
-          </thead>
-          <tbody id="reports-body">
-            <tr class="empty"><td colspan="5">No requests yet. Create one above.</td></tr>
-          </tbody>
-        </table>
-      </section>
-      </div>
-
-      <div id="tab-buckets" class="tab-panel" hidden>
-      <section class="card">
-        <h2>New bucket</h2>
         <p class="subtitle" style="margin-bottom:1rem">
           A <code>Bucket</code> is a custom resource. The controller provisions it for real
           inside MinIO — access policy, quota and all. Kubernetes <em>is</em> the storage API.
@@ -127,6 +81,66 @@
           </thead>
           <tbody id="buckets-body">
             <tr class="empty"><td colspan="5">No buckets yet. Create one above.</td></tr>
+          </tbody>
+        </table>
+      </section>
+      </div>
+
+      <!-- Tab 2 · Reports — generated into a bucket -->
+      <div id="tab-reports" class="tab-panel" hidden>
+      <section class="card">
+        <div class="card-header">
+          <h2>Step 2 · Generate a report</h2>
+          <span class="step-pill">reports.workshop.io/ReportRequest</span>
+        </div>
+        <p class="subtitle" style="margin-bottom:1rem">
+          Each request becomes a worker Job that renders a PDF into the
+          <code>reports</code> bucket. Provision that bucket in the <strong>Buckets</strong>
+          tab first, or the worker will fail.
+        </p>
+        <form id="report-form">
+          <label>
+            Title
+            <input name="title" required placeholder="Q2 Revenue Analysis" />
+          </label>
+          <div class="field-group">
+            <div class="field-header">
+              <span class="field-label">Financial data</span>
+              <div class="presets">
+                <button type="button" class="preset-btn" data-preset="pl">P&amp;L</button>
+                <button type="button" class="preset-btn" data-preset="cashflow">Cash Flow</button>
+                <button type="button" class="preset-btn" data-preset="budget">Budget</button>
+              </div>
+            </div>
+            <div id="dataset-editor" class="dataset-editor"></div>
+            <button type="button" id="add-row-btn" class="add-row-btn">+ Add row</button>
+            <input type="hidden" name="dataset" id="dataset-hidden" />
+          </div>
+          <label>
+            Instructions (optional)
+            <input name="instructions" placeholder="Focus on cost reduction opportunities" />
+          </label>
+          <button type="submit" id="submit-btn">Create report</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Requests</h2>
+          <span id="connection" class="badge badge-pending">connecting…</span>
+        </div>
+        <table id="reports-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Job</th>
+              <th>Message</th>
+              <th>PDF</th>
+            </tr>
+          </thead>
+          <tbody id="reports-body">
+            <tr class="empty"><td colspan="5">No requests yet. Create one above.</td></tr>
           </tbody>
         </table>
       </section>
